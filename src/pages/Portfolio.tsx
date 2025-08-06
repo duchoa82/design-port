@@ -18,7 +18,7 @@ const Portfolio = () => {
       {/* <TopicsSection /> */}
       <RecruiterPlayground />
       <FooterSection />
-      {/* <ChatWidget /> */}
+      <ChatWidget />
     </div>
   );
 };

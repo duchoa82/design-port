@@ -159,15 +159,15 @@ All colors MUST be HSL.
 
 /* Custom table styles for markdown content */
 .prose table {
-  @apply w-full border-collapse border border-gray-300 my-4;
+  @apply w-full border-collapse border border-gray-300 my-4 !important;
 }
 
 .prose th {
-  @apply border border-gray-300 bg-gray-50 px-3 py-2 text-left font-semibold;
+  @apply border border-gray-300 bg-gray-50 px-3 py-2 text-left font-semibold align-top !important;
 }
 
 .prose td {
-  @apply border border-gray-300 px-3 py-2;
+  @apply border border-gray-300 px-3 py-2 text-left align-top !important;
 }
 
 .prose tr:nth-child(even) {
@@ -176,4 +176,17 @@ All colors MUST be HSL.
 
 .prose tr:hover {
   @apply bg-gray-100;
+}
+
+/* Additional specific table styles */
+.prose table td,
+.prose table th {
+  vertical-align: top !important;
+  text-align: left !important;
+}
+
+/* Ensure table content is properly aligned */
+.prose table td *,
+.prose table th * {
+  text-align: left !important;
 }

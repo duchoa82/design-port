@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import { createPortal } from "react-dom";
 
 const projects = [
   {
@@ -87,7 +86,7 @@ const Header = () => {
   return (
     <header className={`bg-card border-b border-border transition-transform duration-300 ${
       isVisible ? 'translate-y-0' : '-translate-y-full'
-    } ${lastScrollY > 100 ? 'fixed top-0 left-0 right-0 z-[9999999] shadow-lg' : 'relative'}`}>
+    } ${lastScrollY > 100 ? 'fixed top-0 left-0 right-0 shadow-lg' : 'relative'} z-[99999999]`}>
       <div className="container mx-auto px-6 py-4">
         <nav className="flex items-center justify-between">
           <Link to="/portfolio" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
@@ -100,8 +99,8 @@ const Header = () => {
               Portfolio
             </span>
           </Link>
-          <div className="hidden md:flex items-center space-x-8 relative">
-            <div className="relative" ref={menuRef}>
+          <div className="hidden md:flex items-center space-x-8 relative" style={{ zIndex: 99999999 }}>
+            <div className="relative" ref={menuRef} style={{ zIndex: 99999999 }}>
               <button
                 className={`relative transition-colors cursor-pointer select-none px-2 py-1 rounded-md focus:outline-none ${
                   activeSection === "projects" 
@@ -117,31 +116,50 @@ const Header = () => {
                   <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
                 )}
               </button>
-              {open && createPortal(
+              {open && (
                 <div
                   id="projects-dropdown"
-                  className="fixed top-20 left-1/2 transform -translate-x-1/2 w-80 bg-card border border-border rounded-lg shadow-lg z-[9999999] flex flex-col gap-2 p-4"
-                  style={{ zIndex: 9999999 }}
+                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-[600px] bg-card border border-border rounded-lg shadow-lg p-4 mt-2"
+                  style={{ zIndex: 99999999 }}
                 >
-                  {projects.map((project, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-4 rounded-md hover:bg-muted transition-colors p-2 cursor-pointer"
-                      onClick={() => {
-                        setOpen(false);
-                        navigate(project.link);
-                      }}
-                    >
-                      <img
-                        src={project.img}
-                        alt={project.name}
-                        className="w-14 h-14 object-cover rounded-md border border-border bg-muted"
-                      />
-                      <span className="text-base text-foreground font-medium">{project.name}</span>
-                    </div>
-                  ))}
-                </div>,
-                document.body
+                  <div className="flex flex-row gap-4">
+                    {projects.map((project, idx) => (
+                      <Link
+                        key={idx}
+                        to={project.link}
+                        className="flex-1 flex flex-col rounded-md hover:bg-muted transition-colors p-3 cursor-pointer group"
+                        onClick={(e) => {
+                          console.log('Link clicked for:', project.link);
+                          console.log('Event:', e);
+                          setOpen(false);
+                          
+                          // Fallback navigation if Link doesn't work
+                          setTimeout(() => {
+                            if (window.location.pathname !== project.link) {
+                              console.log('Fallback navigation to:', project.link);
+                              window.location.href = project.link;
+                            }
+                          }, 100);
+                        }}
+                      >
+                        <div className="w-full h-24 rounded-[4px] overflow-hidden bg-muted flex items-center justify-center mb-3">
+                          <img
+                            src={project.img}
+                            alt={project.name}
+                            className="object-cover w-full h-full"
+                            style={{ borderRadius: 4 }}
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col justify-between">
+                          <h3 className="font-semibold text-foreground mb-2 text-sm text-left leading-tight">{project.name}</h3>
+                          <span className="text-xs text-primary uppercase tracking-wide font-medium cursor-pointer block transition-colors duration-200 group-hover:text-blue-600 text-left">
+                            Read more
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
             <Link 

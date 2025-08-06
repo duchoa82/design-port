@@ -15,7 +15,7 @@ interface Message {
 const presetQuestions = [
   "Who are you and what do you do?",
   "What projects have you worked on?",
-  "What are you most proud of?",
+  "What is your working process?",
   "What are your career goals moving forward?"
 ];
 
@@ -99,16 +99,104 @@ export default function ChatWidget() {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      // Fallback to mock response if API fails
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: getMockResponse(text),
-        sender: 'ai',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, aiMessage]);
+      // Check if this is a user story request and provide fallback
+      if (isUserStoryRequest(text)) {
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: getFallbackUserStoryResponse(text),
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        // Fallback to mock response if API fails
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: getMockResponse(text),
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Function to detect user story requests
+  const isUserStoryRequest = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    
+    // Check for new user story requests
+    const newUserStoryKeywords = [
+      'write', 'draft', 'create', 'generate', 'user story', 'user stories',
+      'epic', 'epics', 'feature', 'flow', 'process', 'workflow'
+    ];
+    
+    // Check for modification requests
+    const modificationKeywords = [
+      'modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve',
+      'add more', 'expand', 'include', 'add', 'remove', 'delete', 'replace',
+      'make it', 'can you', 'could you', 'please', 'instead', 'rather than',
+      'more detail', 'more specific', 'clarify', 'explain', 'elaborate',
+      'generate', 'create', 'one more', 'another', 'additional', 'extra',
+      'more epics', 'more stories', 'another epic', 'another story'
+    ];
+    
+    const isNewRequest = newUserStoryKeywords.some(keyword => lowerText.includes(keyword));
+    const isModificationRequest = modificationKeywords.some(keyword => lowerText.includes(keyword));
+    
+    return isNewRequest || isModificationRequest;
+  };
+
+  // Function to get fallback user story response
+  const getFallbackUserStoryResponse = (text: string): string => {
+    const lowerText = text.toLowerCase();
+    
+    // Check if this is a modification request
+    const isModification = ['modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve',
+                           'add more', 'expand', 'include', 'add', 'remove', 'delete', 'replace',
+                           'make it', 'can you', 'could you', 'please', 'instead', 'rather than',
+                           'more detail', 'more specific', 'clarify', 'explain', 'elaborate',
+                           'generate', 'create', 'one more', 'another', 'additional', 'extra',
+                           'more epics', 'more stories', 'another epic', 'another story'].some(keyword => lowerText.includes(keyword));
+    
+    if (isModification) {
+      return `## Epic 1: Enhanced Feature Management
+
+**User Story 1:** As a user, I want to modify the existing functionality, so that I can better meet my specific requirements.
+
+### Acceptance Criteria:
+- **A/C 1:** Given I want to modify the feature, when I provide specific requirements, then the system should update accordingly.
+- **A/C 2:** Given I need additional functionality, when I request changes, then new features should be integrated seamlessly.
+- **A/C 3:** Given I want to improve user experience, when I suggest modifications, then the interface should be enhanced.
+- **A/C 4:** Given I need better performance, when I request optimizations, then the system should be more efficient.
+
+If you are still curious about user story development or need more detailed requirements, let them contact Hoà Trương now.`;
+    } else {
+      // Extract feature from user message
+      const featureMatch = text.match(/(?:write|draft|create|generate)?\s*(?:user story|user stories|epic|epics)?\s*(?:for)?\s*(.+)/i);
+      const feature = featureMatch ? featureMatch[1].trim() : 'feature';
+      
+      return `## Epic 1: ${feature.charAt(0).toUpperCase() + feature.slice(1)} Feature
+
+**User Story 1:** As a user, I want to ${feature.toLowerCase()}, so that I can achieve my desired outcome efficiently.
+
+### Acceptance Criteria:
+- **A/C 1:** Given I am on the ${feature} page, when I perform the main action, then I should see the expected result.
+- **A/C 2:** Given I encounter an error during ${feature}, when the system fails, then I should see a helpful error message.
+- **A/C 3:** Given I want to customize my ${feature} experience, when I access settings, then I can modify preferences.
+- **A/C 4:** Given I need help with ${feature}, when I look for assistance, then I can find relevant documentation or support.
+
+**User Story 2:** As a system administrator, I want to monitor ${feature} usage, so that I can ensure optimal performance and user satisfaction.
+
+### Acceptance Criteria:
+- **A/C 1:** Given I am monitoring the system, when ${feature} is used, then I should see usage metrics.
+- **A/C 2:** Given I need to troubleshoot issues, when problems occur with ${feature}, then I should receive alerts.
+- **A/C 3:** Given I want to optimize performance, when I analyze ${feature} data, then I should see performance insights.
+- **A/C 4:** Given I need to plan capacity, when I review ${feature} trends, then I should see growth patterns.
+
+This is for the demo content. There are 3 more Epics (e.g., Advanced Features, Integration, Analytics) and about 8 additional User Stories. But in the scope of the demo, I would like to make it simple.`;
     }
   };
 
@@ -123,8 +211,28 @@ export default function ChatWidget() {
       return `I’ve led and delivered multiple impactful projects:\n\n✳︎ 4 Web3 products: Built within 6 months, including NFT platforms and token-gated apps—fully self-taught.\n✳︎ 8 AI agents: Shipped in 3 months, covering livestream summarization, Q&A bots, and internal chat assistants.\n✳︎ Agile product delivery: Owned the end-to-end process—requirement gathering, technical estimation, release planning, writing release notes, and stakeholder demo. Tools: ClickUp, Jira.`;
     }
     
-    if (lowerQuestion.includes('achievement') || lowerQuestion.includes('proud')) {
-      return `I'm most proud of my ability to **learn fast, think systematically**, and build products from zero to market success.\n\nI applied the **Job-to-be-done** framework and a **data-driven** approach to developing a product from scratch—starting from ideation, building the MVP, gathering user insights, and continuously iterating based on real user data.\n\n> By **2024**, the product had become the **#1 in its market** segment.`;
+    if (lowerQuestion.includes('working process') || lowerQuestion.includes('workflow') || lowerQuestion.includes('process')) {
+      return `## My Working Process
+### 1. Requirement Collection
+Gather inputs from multiple sources: chats, direct discussions, Figma files (for business/technical changes), and written feedback. Focus on identifying core needs and clarifying business goals.
+
+### 2. Technical Research & Estimation
+Run technical feasibility checks in parallel with wireframe discussions. Collaborate with the dev lead and designer to estimate total effort and refine implementation direction.
+
+### 3. Release Planning
+Prioritize key and blocking features first, followed by low-effort quick wins. Group features by epic and align them with the current sitemap for structured releases.
+
+### 4. Design – Development – QC
+Once stakeholders approve, the team proceeds with design, development, and QA on the dev environment. I write the release notes and define key tracking metrics.
+
+### 5. Demo & Release
+Conduct a staging demo when the system is stable and bug-free. Final fixes and prioritized feedback are applied before deploying to production and closing the sprint.
+
+----
+### Internal Feedback Loop
+**With stakeholders:** I organize focused Q&A sessions (critical questioning) to clarify expectations and align features with business value.
+
+**With DEVs, QC & Design:** Translate requirements into technical terms, gather feedback, and run solution brainstorms across roles.`;
     }
     
     if (lowerQuestion.includes('career goals') || lowerQuestion.includes('moving forward')) {
@@ -135,7 +243,7 @@ export default function ChatWidget() {
       return "Hi! I'm Truong Duc Hoa, a Product Owner & Associate PM. How can I help you learn more about my work?";
     }
     
-    return "I'm Truong Duc Hoa, a Product Owner & Associate PM with over 5 years of experience in the tech industry. I'm known for my ability to learn fast and adapt to emerging technologies. What specific aspect of my work would you like to know more about?";
+    return "I'm Truong Duc Hoa, a Product Owner & Associate PM with over 3 years of experience in the tech industry. I'm known for my ability to learn fast and adapt to emerging technologies. What specific aspect of my work would you like to know more about?";
   };
 
   const handlePresetQuestion = (question: string) => {
@@ -268,7 +376,7 @@ export default function ChatWidget() {
                       <div
                         className={`w-[85%] rounded-lg p-4 ${
                           message.sender === 'user'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-gray-300 text-gray-800'
                             : 'bg-muted text-foreground'
                         }`}
                       >
@@ -276,10 +384,25 @@ export default function ChatWidget() {
                           {message.sender === 'ai' && (
                             <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
                           )}
-                          <div className="min-w-0 flex-1 overflow-hidden">
+                          <div className="min-w-0 flex-1 overflow-hidden prose prose-sm max-w-none">
                             <ReactMarkdown
                               components={{
-                                p: ({node, ...props}) => <p className="whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere w-full" {...props} />
+                                h2: ({node, ...props}) => <h2 className="text-lg font-bold mt-4 mb-2 text-foreground border-b border-border pb-1" {...props} />,
+                                h3: ({node, ...props}) => <h3 className="text-base font-semibold mt-3 mb-2 text-foreground" {...props} />,
+                                h4: ({node, ...props}) => <h4 className="text-sm font-medium mt-2 mb-1 text-foreground" {...props} />,
+                                p: ({node, ...props}) => <p className="whitespace-pre-wrap text-sm leading-relaxed break-words overflow-wrap-anywhere w-full mb-2" {...props} />,
+                                ul: ({node, ...props}) => <ul className="list-disc list-inside space-y-1 mb-2" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal list-inside space-y-1 mb-2" {...props} />,
+                                li: ({node, ...props}) => <li className="text-sm leading-relaxed" {...props} />,
+                                strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
+                                em: ({node, ...props}) => <em className="italic" {...props} />,
+                                hr: ({node, ...props}) => <hr className="my-3 border-border" {...props} />,
+                                table: ({node, ...props}) => <table className="w-full border-collapse border border-gray-300 my-4" {...props} />,
+                                thead: ({node, ...props}) => <thead className="bg-gray-50" {...props} />,
+                                tbody: ({node, ...props}) => <tbody {...props} />,
+                                tr: ({node, ...props}) => <tr className="border-b border-gray-300" {...props} />,
+                                th: ({node, ...props}) => <th className="border border-gray-300 px-3 py-2 text-left font-semibold align-top" {...props} />,
+                                td: ({node, ...props}) => <td className="border border-gray-300 px-3 py-2 text-left align-top" {...props} />
                               }}
                             >
                               {message.text}

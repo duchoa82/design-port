@@ -1,14 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Bot, User, ArrowLeft, Send, Brain, RotateCcw, X, StopCircle, Square } from "lucide-react";
+import { Bot, User, ArrowLeft, Send, Brain, RotateCcw, X, StopCircle, Square, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-const presetQuestions = [
-  "Who are you and what do you do?",
-  "What projects have you worked on?",
-  "What are you most proud of?",
-  "What are your career goals moving forward?",
-  "Write me the user stories."
-];
+
+
+
 
 interface Message {
   id: string;
@@ -16,6 +12,13 @@ interface Message {
   sender: "user" | "ai";
   timestamp: Date;
 }
+
+function stripMarkdownCodeBlocks(text: string): string {
+  return text.replace(/```markdown\n([\s\S]*?)```/g, '$1');
+}
+
+// Function to parse table format and convert to HTML
+  
 
 export default function RecruiterPlayground() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -36,6 +39,20 @@ export default function RecruiterPlayground() {
   const shouldStopStreamingRef = useRef<boolean>(false);
   const [pendingStrengthsOrWeakness, setPendingStrengthsOrWeakness] = useState<null | 'strengths' | 'weaknesses'>(null);
   const [pendingCVDownload, setPendingCVDownload] = useState<boolean>(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState<boolean>(false);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  
+  // New state for structured workflow
+  const [showSprintForm, setShowSprintForm] = useState(false);
+  const [showMainForm, setShowMainForm] = useState(true); // Show main form initially
+  const [targetUser, setTargetUser] = useState("");
+  const [taskDescription, setTaskDescription] = useState("");
+  const [teamMember, setTeamMember] = useState("");
+  const [projectTimeline, setProjectTimeline] = useState("");
+  const [timelineUnit, setTimelineUnit] = useState("weeks"); // weeks or months
+  const [generatedUserStories, setGeneratedUserStories] = useState<string>("");
+  const [showActionButtons, setShowActionButtons] = useState(false);
+  const [sprintCompleted, setSprintCompleted] = useState(false);
 
   const userStoryKeywords = [
     'flow', 'feature', 'function', 'screen', 'module', 'checkout', 'login', 'dashboard', 'onboarding',
@@ -57,6 +74,33 @@ export default function RecruiterPlayground() {
 
   const weaknessesMarkdown = `### **Weaknesses**\n\n-   **Tend to go too fast, too hard**: I often push myself at a high pace, which can lead to burnout. Currently learning how to balance energy and maintain momentum sustainably.\n-   **Past struggles with team stability**: I've been through team breakups and projects that didn’t last. These experiences taught me to choose collaborators and missions more carefully.\n-   **Easily influenced by trends (FOMO)**: Sometimes I get too caught up in what’s new or trending. I’m now focusing more on long-term value and staying grounded.\n-   **Perfectionist mindset**: I tend to over-polish things, even when it's not necessary, which can slow me down. I'm working on knowing when “good enough” is truly enough.`;
 
+  // --- Streaming logic update ---
+  // Add a new state for markdown blocks
+  const [streamBlocks, setStreamBlocks] = useState<string[]>([]);
+  const [streamBlockIndex, setStreamBlockIndex] = useState(0);
+
+  // Helper to split markdown into blocks (by double newlines or headings)
+  function splitMarkdownBlocks(text: string): string[] {
+    // Split by double newlines or markdown headings
+    return text.split(/(\n\n|^## |^\*\*User Story|^### |^\*\*A\/C|^\*\*Acceptance Criteria|^\*\*Epic|^\*\*As a )/gm)
+      .reduce((acc, curr, idx, arr) => {
+        if (curr.match(/(\n\n|^## |^\*\*User Story|^### |^\*\*A\/C|^\*\*Acceptance Criteria|^\*\*Epic|^\*\*As a )/gm)) {
+          // Merge with previous
+          if (acc.length > 0) {
+            acc[acc.length - 1] += curr + (arr[idx + 1] || "");
+            arr[idx + 1] = "";
+          }
+        } else if (curr.trim() !== "") {
+          acc.push(curr);
+        }
+        return acc;
+      }, [] as string[]);
+  }
+
+
+
+
+
   useEffect(() => {
     if (!isWelcome) {
       setTimeout(() => {
@@ -70,6 +114,8 @@ export default function RecruiterPlayground() {
       chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
+
+  // Removed auto-scroll to prevent content hiding issues
 
   const getMockResponse = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
@@ -122,9 +168,7 @@ export default function RecruiterPlayground() {
     if (lowerQuestion.includes("project")) {
       return `I’ve led and delivered multiple impactful projects, but highlighted:\n\n**4 Web3 products**: Built within 6 months, including NFT platforms and token-gated apps—fully self-taught.\n\n**8 AI agents**: Shipped in 3 months, covering livestream summarization, Q&A bots, and internal chat assistants.`;
     }
-    if (lowerQuestion.includes("achievement") || lowerQuestion.includes("proud")) {
-      return `I'm most proud of my ability to **learn fast, think systematically**, and build products from zero to market success.\n\nI applied the **Job-to-be-done** framework and a **data-driven** approach to developing a product from scratch—starting from ideation, building the MVP, gathering user insights, and continuously iterating based on real user data.\n\n> By **2024**, the product had become the **#1 in its market** segment.`;
-    }
+
     if (lowerQuestion.includes("career goals") || lowerQuestion.includes("moving forward")) {
       return `I'm looking to join a **vision-driven team**, working on products that **create real impact**, where I can bridge the gap between product, engineering, and business.\n\nI want to continue **exploring the potential of AI**, **shipping** products that are not just **feature-complete but user-validated**, outcome-oriented, and market-ready—from idea to production.`;
     }
@@ -137,20 +181,49 @@ export default function RecruiterPlayground() {
       lowerQuestion.includes("workflow") ||
       lowerQuestion.includes("how do you work")
     ) {
-      return `## My Working Process\n\n### 1. Requirement Collection\n\nGather inputs from multiple sources: chats, direct discussions, Figma files (for business/technical changes), and written feedback. Focus on identifying core needs and clarifying business goals.\n\n### 2. Technical Research & Estimation\n\nRun technical feasibility checks in parallel with wireframe discussions. Collaborate with dev lead and designer to estimate total effort and refine implementation direction.\n\n### 3. Release Planning\n\nPrioritize key and blocking features first, followed by low-effort quick wins. Group features by epic and align them with the current sitemap for structured releases.\n\n### 4. Design – Development – QC\n\nOnce stakeholders approve, the team proceeds with design, development, and QA on the dev environment. I write the release notes and define key tracking metrics.\n\n### 5. Demo & Release\n\nConduct staging demo when the system is stable and bug-free. Final fixes and prioritized feedback are applied before deploying to production and closing the sprint.\n\n----------\n\n### Internal Feedback Loop\n\n**With stakeholders:** I organize focused Q&A sessions (critical questioning) to clarify expectations and align features with business value.\n    \n**With dev & design:** Translate requirements into technical terms, gather feedback, and run solution brainstorms across roles.`;
+      return `## My Working Process
+### 1. Requirement Collection
+Gather inputs from multiple sources: chats, direct discussions, Figma files (for business/technical changes), and written feedback. Focus on identifying core needs and clarifying business goals.
+
+### 2. Technical Research & Estimation
+Run technical feasibility checks in parallel with wireframe discussions. Collaborate with the dev lead and designer to estimate total effort and refine implementation direction.
+
+### 3. Release Planning
+Prioritize key and blocking features first, followed by low-effort quick wins. Group features by epic and align them with the current sitemap for structured releases.
+
+### 4. Design – Development – QC
+Once stakeholders approve, the team proceeds with design, development, and QA on the dev environment. I write the release notes and define key tracking metrics.
+
+### 5. Demo & Release
+Conduct a staging demo when the system is stable and bug-free. Final fixes and prioritized feedback are applied before deploying to production and closing the sprint.
+
+----
+### Internal Feedback Loop
+**With stakeholders:** I organize focused Q&A sessions (critical questioning) to clarify expectations and align features with business value.
+
+**With DEVs, QC & Design:** Translate requirements into technical terms, gather feedback, and run solution brainstorms across roles.`;
     }
     // Out-of-scope fallback
     return "Hmm...looks like your message is a bit out of my scope. In this case, Hoà trained me to say no first — but don’t worry, I’ll check with him and get back to you soon.";
   };
 
   async function fetchUserStoryFromAPI(feature: string): Promise<string> {
+    return fetchUserStoryAPI(`Write user story for ${feature}`);
+  }
+
+  async function fetchUserStoryAPI(message: string): Promise<string> {
+    setIsGeneratingAI(true);
     try {
-      const response = await fetch('https://your-app-name.railway.app/api/user-story', {
+      console.log('🤖 AI: Generating user story for:', message);
+      const response = await fetch('http://localhost:3001/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ feature }),
+        body: JSON.stringify({ 
+          message: message,
+          conversationId: conversationId
+        }),
       });
 
       if (!response.ok) {
@@ -158,9 +231,20 @@ export default function RecruiterPlayground() {
       }
 
       const data = await response.json();
-      return data.userStory;
+      console.log('✅ AI: Generated successfully');
+      
+      // Save conversation ID for future requests
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+      
+      return data.lastMessage.text;
     } catch (error) {
-      console.error('Error fetching user story:', error);
+      console.error('❌ AI: Error fetching user story:', error);
+      
+      // Extract feature name from message for fallback
+      const featureMatch = message.match(/Write user story for (.+)/i);
+      const feature = featureMatch ? featureMatch[1] : 'feature';
       
       // Fallback response if API fails
       return `## Epic 1: ${feature.charAt(0).toUpperCase() + feature.slice(1)} Feature
@@ -172,6 +256,8 @@ export default function RecruiterPlayground() {
 **A/C 2:** Given I encounter an error during ${feature}, when the system fails, then I should see a helpful error message.
 **A/C 3:** Given I want to customize my ${feature} experience, when I access settings, then I can modify preferences.
 **A/C 4:** Given I need help with ${feature}, when I look for assistance, then I can find relevant documentation or support.`;
+    } finally {
+      setIsGeneratingAI(false);
     }
   }
 
@@ -189,90 +275,195 @@ export default function RecruiterPlayground() {
     setStreamingText(null);
     setStreamingIndex(0);
 
-    // Intent detection for user story requests
-    const userStoryMatch = text.match(/(?:write|draft)?\s*user story for (.+)/i);
-    if (userStoryMatch && userStoryMatch[1]) {
-      const feature = userStoryMatch[1].trim();
-      const aiText = await fetchUserStoryFromAPI(feature);
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "",
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setStreamingText(aiText);
-      setStreamingIndex(0);
-      setIsLoading(false);
-      return;
-    }
+    // Make local decision about how to handle the request
+    const decision = makeLocalDecision(text);
+    console.log(`Decision for "${text}": ${decision}`);
 
-    // New: If likely a user story but not explicit, ask for confirmation
-    if (isLikelyUserStory(text) && !awaitingUserStory) {
-      setPendingUserStoryFeature(text.trim());
-      setIsLoading(false);
-      return;
-    }
+    switch (decision) {
+      case 'CASE_1':
+        // Case 1: Answer about Hoà Trương's information locally
+        setTimeout(() => {
+          const aiText = getMockResponse(text);
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "",
+            sender: "ai",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setStreamingText(aiText);
+          setStreamingIndex(0);
+        }, 1200);
+        return;
+      
+      case 'CASE_2':
+        // Case 2: Send to AI for user story generation
+        // Intent detection for user story requests
+        const userStoryMatch = text.match(/(?:write|draft)?\s*user story for (.+)/i);
+        if (userStoryMatch && userStoryMatch[1]) {
+          const feature = userStoryMatch[1].trim();
+          const aiText = await fetchUserStoryFromAPI(feature);
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "",
+            sender: "ai",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setStreamingText(aiText);
+          setStreamingIndex(0);
+          setIsLoading(false);
+          return;
+        }
 
+        // New: If likely a user story but not explicit, ask for confirmation
+        if (isLikelyUserStory(text) && !awaitingUserStory && !conversationId) {
+          setPendingUserStoryFeature(text.trim());
+          setIsLoading(false);
+          return;
+        }
+
+        if (awaitingUserStory) {
+          // Add prefix "Make the user story for" but don't show it to user
+          const aiText = await fetchUserStoryFromAPI(text);
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "",
+            sender: "ai",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setStreamingText(aiText);
+          setStreamingIndex(0);
+          setAwaitingUserStory(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Handle subsequent messages in existing conversation (like "more epics")
+        if (conversationId) {
+          const aiText = await fetchUserStoryAPI(text);
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "",
+            sender: "ai",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setStreamingText(aiText);
+          setStreamingIndex(0);
+          setIsLoading(false);
+          return;
+        }
+        break;
+      
+      case 'CASE_3':
+        // Case 3: Out of scope
+        const outOfScopeMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          text: "This is out of my scope, I'll update with Hoà. Let's try with the funny voice! 😄",
+          sender: "ai",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, outOfScopeMessage]);
+        setIsLoading(false);
+        return;
+      
+      default:
+        // Fallback to original logic
+        setTimeout(() => {
+          const aiText = getMockResponse(text);
+          const aiMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: "",
+            sender: "ai",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+          setStreamingText(aiText);
+          setStreamingIndex(0);
+        }, 1200);
+        return;
+    }
+  };
+
+  // Function to make local decision about response strategy
+  const makeLocalDecision = (userMessage: string): string => {
+    // Simple keyword-based decision making (faster than AI call)
+    const lowerMessage = userMessage.toLowerCase();
+    
+    // Case 1: Hoà Trương information keywords
+    const case1Keywords = [
+      'hello', 'hi', 'hey', 'who are you', 'what do you do', 'contact', 'email', 'phone',
+      'cv', 'resume', 'curriculum vitae', 'download', 'pdf', 'document', 'strength', 'weakness',
+      'projects', 'working process', 'workflow', 'process', 'career goals', 'experience', 'background', 'dehe'
+    ];
+    
+    // Case 2: User story keywords
+    const case2Keywords = [
+      'write', 'draft', 'create', 'generate', 'user story', 'user stories', 'epic', 'epics',
+      'modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve', 'add more',
+      'feature', 'flow', 'process', 'workflow', 'advanced features', 'integration', 'analytics'
+    ];
+    
+    // Check for Case 1 keywords (Hoà Trương information)
+    const hasCase1Keywords = case1Keywords.some(keyword => lowerMessage.includes(keyword));
+    
+    // Check for Case 2 keywords (User stories)
+    const hasCase2Keywords = case2Keywords.some(keyword => lowerMessage.includes(keyword));
+    
+    // Special case: If awaiting user story input, treat any input as Case 2
     if (awaitingUserStory) {
-      const aiText = await fetchUserStoryFromAPI(text);
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "",
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setStreamingText(aiText);
-      setStreamingIndex(0);
-      setAwaitingUserStory(false);
-      setIsLoading(false);
-      return;
+      return 'CASE_2';
     }
-
-    setTimeout(() => {
-      const aiText = getMockResponse(text);
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "",
-        sender: "ai",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-      setStreamingText(aiText);
-      setStreamingIndex(0);
-    }, 1200);
+    
+    // Special case: If we have an existing conversation, treat any input as Case 2 (modification)
+    if (conversationId) {
+      return 'CASE_2';
+    }
+    
+    // Decision logic for new conversations
+    if (hasCase2Keywords) {
+      return 'CASE_2';
+    } else if (hasCase1Keywords) {
+      return 'CASE_1';
+    } else {
+      return 'CASE_3'; // Default to out of scope
+    }
   };
 
   // Typing effect for AI streaming
-  useEffect(() => {
-    if (streamingText === null || shouldStopStreamingRef.current) {
-      if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
-      shouldStopStreamingRef.current = false;
-      return;
-    }
-    if (streamingIndex < streamingText.length) {
-      streamingTimeoutRef.current = setTimeout(() => {
-        if (shouldStopStreamingRef.current) return;
-        setMessages((prev) => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            text: streamingText.slice(0, streamingIndex + 1),
-          };
-          return updated;
-        });
-        setStreamingIndex((i) => i + 1);
-      }, 4); // 4ms per character (even faster)
-      return () => {
-        if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
-      };
-    } else {
-      setIsLoading(false);
-      setStreamingText(null);
-      setStreamingIndex(0);
-    }
-  }, [streamingText, streamingIndex]);
+  // REMOVED: This useEffect was causing streamingText to be cleared immediately
+  // useEffect(() => {
+  //   if (streamingText === null || shouldStopStreamingRef.current) {
+  //     if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
+  //     shouldStopStreamingRef.current = false;
+  //     return;
+  //   }
+  //   if (streamingIndex < streamingText.length) {
+  //     streamingTimeoutRef.current = setTimeout(() => {
+  //       if (shouldStopStreamingRef.current) return;
+  //       setMessages((prev) => {
+  //         const updated = [...prev];
+  //         updated[updated.length - 1] = {
+  //           ...updated[updated.length - 1],
+  //           text: streamingText.slice(0, streamingIndex + 1),
+  //         };
+  //         return updated;
+  //       });
+  //       setStreamingIndex((i) => i + 1);
+  //     }, 4); // 4ms per character (even faster)
+  //     return () => {
+  //       if (streamingTimeoutRef.current) clearTimeout(streamingTimeoutRef.current);
+  //     };
+  //   } else {
+  //     setIsLoading(false);
+  //     setStreamingText(null);
+  //     setStreamingIndex(0);
+  //   }
+  // }, [streamingText, streamingIndex]);
+
+
 
   // Add useEffect for streaming the system prompt
   useEffect(() => {
@@ -430,7 +621,7 @@ export default function RecruiterPlayground() {
 
   const handlePresetQuestion = (question: string) => {
     setIsWelcome(false);
-    if (question === "Write me the user stories.") {
+    if (question === "Write Me The User Stories - Powered by AI") {
       setMessages((prev) => [
         ...prev,
         {
@@ -445,11 +636,153 @@ export default function RecruiterPlayground() {
       );
       setSystemPromptIndex(0);
       // Don't set awaitingUserStory here; do it after streaming is done
+    } else if (question === "Everything About Me") {
+      setTimeout(() => {
+        handleSendMessage("Who are you and what do you do?");
+      }, 0);
     } else {
       setTimeout(() => {
         handleSendMessage(question);
       }, 0);
     }
+  };
+
+  // New functions for structured workflow
+  const handleUserStoryFormSubmit = async () => {
+    if (!targetUser.trim() || !taskDescription.trim()) {
+      return;
+    }
+
+    setShowMainForm(false);
+    setIsLoading(true);
+    setStreamingText(null);
+    setStreamingIndex(0);
+    setShowActionButtons(false);
+
+    try {
+      // Call API with new prompt-1
+      const response = await fetch('http://localhost:3001/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Please generate user stories and epics. Target User: ${targetUser}, Task Description: ${taskDescription}. Format the response as markdown with proper user stories, epics, and acceptance criteria.`,
+          conversationId: conversationId
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update conversation ID if received from API
+        if (data.conversationId) {
+          setConversationId(data.conversationId);
+        }
+        
+        // Set the response content and start fake streaming
+        setStreamingText(data.lastMessage.text);
+        setGeneratedUserStories(data.lastMessage.text);
+        setStreamingIndex(0);
+        setIsLoading(false);
+        
+        // Fake streaming effect - faster and smoother
+        const fakeStreaming = () => {
+          const interval = setInterval(() => {
+            setStreamingIndex(prev => {
+              if (prev >= data.lastMessage.text.length) {
+                clearInterval(interval);
+                setShowActionButtons(true);
+                return data.lastMessage.text.length;
+              }
+              return prev + Math.floor(Math.random() * 5) + 3; // Random 3-7 characters for faster effect
+            });
+          }, 20); // 20ms per chunk for faster streaming
+        };
+        
+        fakeStreaming();
+      } else {
+        throw new Error('API request failed');
+      }
+    } catch (error) {
+      console.error('Error generating user stories:', error);
+      setStreamingText("Sorry, I couldn't generate the user stories. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleSprintFormSubmit = async () => {
+    if (!teamMember.trim() || !projectTimeline) {
+      return;
+    }
+
+    setShowSprintForm(false);
+    setIsLoading(true);
+    setStreamingText(null);
+    setStreamingIndex(0);
+    setShowActionButtons(false);
+
+    try {
+      // Call API with prompt-2
+      const response = await fetch('http://localhost:3001/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: `Create sprint plan for Team Member: ${teamMember}, Project Timeline: ${projectTimeline} ${timelineUnit}. Use the previously generated user stories: ${generatedUserStories}`,
+          conversationId: conversationId
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Update conversation ID if received from API
+        if (data.conversationId) {
+          setConversationId(data.conversationId);
+        }
+        
+        // Set the response content and start fake streaming
+        setStreamingText(data.lastMessage.text);
+        setStreamingIndex(0);
+        setIsLoading(false);
+        
+        // Fake streaming effect - faster and smoother
+        const fakeStreaming2 = () => {
+          const interval = setInterval(() => {
+            setStreamingIndex(prev => {
+              if (prev >= data.lastMessage.text.length) {
+                clearInterval(interval);
+                setShowActionButtons(true);
+                setSprintCompleted(true);
+                return data.lastMessage.text.length;
+              }
+              return prev + Math.floor(Math.random() * 5) + 3; // Random 3-7 characters for faster effect
+            });
+          }, 20); // 20ms per chunk for faster streaming
+        };
+        
+        fakeStreaming2();
+      } else {
+        throw new Error('API request failed');
+      }
+    } catch (error) {
+      console.error('Error generating sprint plan:', error);
+      setStreamingText("Sorry, I couldn't generate the sprint plan. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleNewUserStory = () => {
+    setShowActionButtons(false);
+    setShowMainForm(true);
+    setShowSprintForm(false);
+    setSprintCompleted(false);
+    setTargetUser("");
+    setTaskDescription("");
+    setStreamingText(null);
+    setStreamingIndex(0);
   };
 
   return (
@@ -468,18 +801,9 @@ export default function RecruiterPlayground() {
             <div className="absolute top-32 -right-20 w-56 h-56 rounded-full bg-yellow-200 opacity-40 blur-3xl" />
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-purple-300 opacity-30 blur-3xl" />
           </div>
-          <div
-            className="w-full h-[540px] rounded-2xl flex flex-col overflow-hidden relative z-10"
-            style={{
-              background: "rgba(223, 223, 223, 0.44)",
-              boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-              backdropFilter: "blur(5.9px)",
-              WebkitBackdropFilter: "blur(5.9px)",
-              border: "1px solid rgba(223, 223, 223, 0.53)",
-            }}
-          >
+          <div className="w-full h-[600px] flex flex-col relative z-10 border border-gray-300 rounded-lg">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/50 rounded-t-lg flex-shrink-0">
+            <div className="flex items-center justify-between p-4 border-b border-border bg-muted/30 rounded-t-lg flex-shrink-0 sticky top-0 z-40">
               <div className="flex items-center gap-2">
                 <Brain className="w-4 h-4 text-primary" />
                 <span className="text-sm text-foreground font-light">
@@ -489,7 +813,21 @@ export default function RecruiterPlayground() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsWelcome(true);
+                  // Reset all state to initial values
+                  setShowMainForm(true);
+                  setShowSprintForm(false);
+                  setShowActionButtons(false);
+                  setSprintCompleted(false);
+                  setTargetUser("");
+                  setTaskDescription("");
+                  setTeamMember("");
+                  setProjectTimeline("");
+                  setTimelineUnit("weeks");
+                  setStreamingText(null);
+                  setStreamingIndex(0);
+                  setGeneratedUserStories("");
+                  setConversationId(null);
+                  setIsLoading(false);
                   setMessages([]);
                 }}
                 className="p-2 rounded hover:bg-muted transition-colors"
@@ -498,233 +836,256 @@ export default function RecruiterPlayground() {
                 <RotateCcw className="w-5 h-5 text-muted-foreground" />
               </button>
             </div>
-            {/* Chat Content */}
-            <div className="flex-1 flex flex-col min-h-0">
-              {isWelcome ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {showMainForm ? (
+                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                   <h3 className="text-lg font-semibold mb-2 text-foreground">
-                    Hi! I'm Dehe, powered by AI and his brain.
+                    Generate User Stories with AI
                   </h3>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Ask me anything about his experience, projects, career goals, or quick test with a user story brief.
+                    Create detailed user stories and acceptance criteria for your features
                   </p>
-                  {/* Preset Questions */}
-                  <div className="w-full space-y-3 mb-4">
-                    {presetQuestions.map((question, index) => (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => handlePresetQuestion(question)}
-                        className="w-full p-4 text-sm leading-relaxed break-words rounded-md bg-background border border-border cursor-pointer transition-shadow duration-200 text-left hover:shadow-[0_4px_24px_rgba(96,165,250,0.25)]"
-                      >
-                        {question}
-                      </button>
-                    ))}
+                  
+                  {/* Main User Story Form */}
+                  <div className="w-full max-w-md mx-auto space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-left">Target User:</label>
+                      <input
+                        type="text"
+                        value={targetUser}
+                        onChange={(e) => setTargetUser(e.target.value)}
+                        placeholder="e.g., Customer, Admin, Manager"
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-left">Task Description:</label>
+                      <textarea
+                        value={taskDescription}
+                        onChange={(e) => setTaskDescription(e.target.value)}
+                        placeholder="e.g., I want to be able to checkout items from my shopping cart"
+                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground resize-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        rows={4}
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={handleUserStoryFormSubmit}
+                      disabled={!targetUser.trim() || !taskDescription.trim() || isLoading}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span className="bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-pulse font-bold">
+                            THINKING
+                          </span>
+
+                        </>
+                      ) : (
+                        <>
+                          Write Me The User Stories
+                          <span className="text-xs bg-white/20 px-2 py-1 rounded-full">AI Powered</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
-              ) : (
-                <>
-                  <div
-                    ref={chatContentRef}
-                    className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0"
-                  >
-                    {messages.map((msg, idx) => (
-                      <div key={msg.id + idx} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} mb-2`}>
-                        <div
-                          className={`rounded-lg px-4 py-2 max-w-[85%] w-auto min-w-0 inline-block whitespace-pre-wrap break-words ${
-                            msg.sender === "user"
-                              ? "bg-primary text-primary-foreground ml-auto"
-                              : "bg-muted text-foreground mr-auto"
-                          }`}
-                          style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
+                              ) : (
+                  <>
+                    {/* Content Area - Scrollable */}
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="p-4">
+
+                    
+                    {/* Progress indicator */}
+                    {streamingText && (
+                      <div className="mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-sm text-gray-600">
+                            {Math.min(Math.round((streamingIndex / streamingText.length) * 100), 100) === 100 
+                              ? (sprintCompleted ? "Sprint planning is ready to view" : "Epics and user stories are ready to view")
+                              : (
+                                <span className="flex items-center">
+                                  Generating
+                                  <span className="ml-1 flex">
+                                    <span className="animate-bounce">.</span>
+                                    <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>.</span>
+                                    <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>.</span>
+                                  </span>
+                                </span>
+                              )
+                            }
+                          </span>
+                          <span className="text-sm text-gray-600">{Math.min(Math.round((streamingIndex / streamingText.length) * 100), 100)}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full transition-all duration-300 ease-out"
+                            style={{ 
+                              width: `${Math.min((streamingIndex / streamingText.length) * 100, 100)}%`,
+                              background: 'linear-gradient(90deg, #26DA98, #00A44D)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Streaming text effect */}
+                    {streamingText && (
+                      <div className="bg-background rounded-lg p-4 border border-border prose prose-sm max-w-none">
+
+                        
+                        {/* Markdown version */}
+                        <ReactMarkdown
+                          components={{
+                            h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-2 text-foreground" {...props} />,
+                            h2: ({node, ...props}) => <h2 className="text-xl font-semibold mb-1 text-foreground" {...props} />,
+                            h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-0 text-foreground" {...props} />,
+                            p: ({ node, ...props }) => <p className="mb-2 leading-relaxed text-foreground" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc list-inside mb-2 text-foreground" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-2 text-foreground" {...props} />,
+                            li: ({node, ...props}) => <li className="mb-1 text-foreground" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-semibold text-foreground" {...props} />,
+                            em: ({node, ...props}) => <em className="italic text-foreground" {...props} />,
+                            code: ({node, ...props}) => <code className="bg-background px-1 py-0.5 rounded text-sm font-mono text-foreground" {...props} />,
+                            pre: ({node, ...props}) => <pre className="bg-background p-2 rounded text-sm font-mono text-foreground overflow-x-auto mb-2" {...props} />,
+                            table: ({node, ...props}) => <table className="w-full border-collapse border border-gray-300 my-4" {...props} />,
+                            thead: ({node, ...props}) => <thead className="bg-gray-50" {...props} />,
+                            tbody: ({node, ...props}) => <tbody {...props} />,
+                            tr: ({node, ...props}) => <tr className="border-b border-gray-300" {...props} />,
+                            th: ({node, ...props}) => <th className="border border-gray-300 px-3 py-2 text-left font-semibold align-top" {...props} />,
+                            td: ({node, ...props}) => <td className="border border-gray-300 px-3 py-2 text-left align-top" {...props} />,
+                            a: ({node, ...props}) => (
+                              <a 
+                                {...props} 
+                                className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              />
+                            ),
+                          }}
                         >
-                          <ReactMarkdown
-                            components={{
-                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-2" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl font-semibold mb-1" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-0" {...props} />,
-                              p: ({ node, ...props }) => <p className="mb-0 leading-relaxed" {...props} />,
-                              a: ({node, ...props}) => (
-                                <a 
-                                  {...props} 
-                                  className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                />
-                              ),
-                            }}
-                          >
-                            {msg.text}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    ))}
-                    {/* Streaming system prompt effect */}
-                    {streamingSystemPrompt && (
-                      <div className="flex justify-start mb-2">
-                        <div className="rounded-lg px-4 py-2 max-w-[85%] w-auto min-w-0 inline-block whitespace-pre-wrap break-words bg-muted text-foreground mr-auto" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>
-                          <ReactMarkdown
-                            components={{
-                              h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-2" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl font-semibold mb-1" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-0" {...props} />,
-                              p: ({ node, ...props }) => <p className="mb-0 leading-relaxed" {...props} />,
-                              a: ({node, ...props}) => (
-                                <a 
-                                  {...props} 
-                                  className="text-blue-600 hover:text-blue-800 underline hover:no-underline transition-colors"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                />
-                              ),
-                            }}
-                          >
-                            {streamingSystemPrompt.slice(0, systemPromptIndex)}
-                          </ReactMarkdown>
-                        </div>
+                          {stripMarkdownCodeBlocks(streamingText.substring(0, streamingIndex))}
+                        </ReactMarkdown>
                       </div>
                     )}
-                    {pendingUserStoryFeature && (
-                      <div className="flex justify-start mb-2">
-                        <div className="rounded-lg px-4 py-2 max-w-[85%] w-auto min-w-0 inline-block whitespace-pre-wrap break-words bg-muted text-foreground mr-auto">
-                          <div className="mb-2">Looks like you're trying to create a new user story for <span className="font-semibold">"{pendingUserStoryFeature}"</span>. Would you like to proceed?</div>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] bg-black text-white hover:bg-neutral-800 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleUserStoryConfirmation(true)}
-                            >
-                              Yes
-                            </button>
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] border border-neutral-400 text-neutral-800 bg-transparent hover:bg-neutral-100 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleUserStoryConfirmation(false)}
-                            >
-                              No
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {pendingStrengthsOrWeakness && streamingText === null && (
-                      <div className="flex justify-start mb-2">
-                        <div className="rounded-lg px-4 py-2 max-w-[85%] w-auto min-w-0 inline-block whitespace-pre-wrap break-words bg-muted text-foreground mr-auto">
-                          <div className="mb-2">
-                            {pendingStrengthsOrWeakness === 'strengths'
-                              ? 'Would you like to know about my strengths?'
-                              : 'Would you like to know about my weaknesses?'}
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] bg-black text-white hover:bg-neutral-800 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleStrengthsOrWeaknessFollowup(true)}
-                            >
-                              Yes
-                            </button>
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] border border-neutral-400 text-neutral-800 bg-transparent hover:bg-neutral-100 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleStrengthsOrWeaknessFollowup(false)}
-                            >
-                              No
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    {pendingCVDownload && streamingText === null && (
-                      <div className="flex justify-start mb-2">
-                        <div className="rounded-lg px-4 py-2 max-w-[85%] w-auto min-w-0 inline-block whitespace-pre-wrap break-words bg-muted text-foreground mr-auto">
-                          <div className="mb-2">Would you like me to download my CV for you?</div>
-                          <div className="flex gap-2">
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] bg-black text-white hover:bg-neutral-800 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleCVDownloadConfirmation(true)}
-                            >
-                              Yes
-                            </button>
-                            <button
-                              className="px-3 py-1 text-sm rounded-[10px] border border-neutral-400 text-neutral-800 bg-transparent hover:bg-neutral-100 transition-colors"
-                              style={{ minWidth: 56 }}
-                              onClick={() => handleCVDownloadConfirmation(false)}
-                            >
-                              No
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+
+                    {/* Loading indicator */}
                     {isLoading && !streamingText && (
-                      <div className="flex justify-start">
-                        <div className="bg-muted rounded-lg p-4 max-w-[85%]">
-                          <div className="flex items-center gap-2">
-                            <Bot className="w-4 h-4" />
-                            <span className="text-sm text-muted-foreground font-medium">Thinking</span>
-                            <div className="flex space-x-1 ml-1">
-                              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0s' }}></span>
-                              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.15s' }}></span>
-                              <span className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></span>
+                      <div className="flex justify-center items-center p-8">
+                        <div className="flex items-center gap-3">
+                          <Sparkles className="w-6 h-6 text-purple-400 fill-current animate-pulse" />
+                          <span className="text-lg bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-pulse font-bold">
+                            THINKING
+                          </span>
+
+                        </div>
+                      </div>
+                    )}
+
+
+
+                    {/* Sprint Plan Form Modal */}
+                    {showSprintForm && (
+                      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-background rounded-lg p-6 max-w-md w-full border border-border shadow-xl">
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Create Sprint Plan</h3>
+                            <button
+                              onClick={() => setShowSprintForm(false)}
+                              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <div className="space-y-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Team Members:</label>
+                              <input
+                                type="text"
+                                value={teamMember}
+                                onChange={(e) => setTeamMember(e.target.value)}
+                                placeholder="e.g., 2 Developers, 1 Designer, 1 QA"
+                                className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                              />
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2">Project Timeline:</label>
+                              <div className="flex gap-2">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={projectTimeline}
+                                  onChange={(e) => {
+                                    const value = parseInt(e.target.value);
+                                    if (value > 0) {
+                                      setProjectTimeline(value.toString());
+                                    }
+                                  }}
+                                  placeholder="e.g., 6"
+                                  className="flex-1 px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                                />
+                                <select
+                                  value={timelineUnit}
+                                  onChange={(e) => setTimelineUnit(e.target.value)}
+                                  className="px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                                >
+                                  <option value="weeks">Weeks</option>
+                                  <option value="months">Months</option>
+                                </select>
+                              </div>
+                            </div>
+                            <button
+                              onClick={handleSprintFormSubmit}
+                              disabled={!teamMember.trim() || !projectTimeline || isLoading}
+                              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                            >
+                              {isLoading ? "Generating..." : "Create Sprint Plan"}
+                            </button>
                           </div>
                         </div>
                       </div>
                     )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                  {/* Input area */}
-                  <div className="flex items-end gap-2 p-4 border-t border-border bg-muted/50 rounded-b-lg">
-                    <textarea
-                      ref={inputRef as any}
-                      className="flex-1 resize-none min-h-[40px] max-h-32 rounded-lg px-4 py-2 bg-background border border-border focus:outline-none focus:ring-0 text-sm text-foreground placeholder:text-muted-foreground"
-                      placeholder="Type your message..."
-                      value={inputValue}
-                      onChange={(e) => {
-                        if (streamingText !== null) handleStopStreaming();
-                        setInputValue(e.target.value);
-                      }}
-                      onKeyDown={async (e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          if (streamingText !== null) handleStopStreaming();
-                          if (inputValue.trim()) {
-                            await handleSendMessage(inputValue);
-                          }
-                        }
-                      }}
-                      rows={1}
-                      disabled={isLoading && !streamingText}
-                      style={{ minHeight: 40, maxHeight: 128, overflow: 'auto' }}
-                    />
-                    {streamingText !== null ? (
-                      <button
-                        type="button"
-                        onClick={handleStopStreaming}
-                        className="p-2 rounded-full bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center"
-                        aria-label="Stop streaming"
-                      >
-                        <Square className="w-5 h-5 text-primary-foreground fill-primary-foreground" fill="currentColor" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (inputValue.trim()) {
-                            await handleSendMessage(inputValue);
-                          }
-                        }}
-                        className="p-2 rounded-full bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center"
-                        aria-label="Send message"
-                        disabled={isLoading && !streamingText}
-                      >
-                        <Send className="w-5 h-5 text-primary-foreground" />
-                      </button>
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons - Fixed Bottom */}
+                    {showActionButtons && !isLoading && (
+                      <div className="border-t border-border bg-muted/30 p-4 flex gap-2">
+                        {!sprintCompleted && (
+                          <button
+                            onClick={() => {
+                              setShowSprintForm(true);
+                            }}
+                            className="relative bg-white/10 backdrop-blur-md text-black font-medium px-4 py-2 rounded-xl hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 group overflow-hidden"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-br from-pink-300/40 via-purple-300/40 to-blue-300/40 rounded-xl"></div>
+                            <span className="relative z-10 flex items-center gap-2 text-sm">
+                              <Sparkles className="w-3 h-3 text-purple-400 fill-current" style={{ animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
+                              Generate Sprint Planning
+                            </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-xl"></div>
+                          </button>
+                        )}
+                        <button
+                          onClick={handleNewUserStory}
+                          className="px-4 py-2 bg-transparent text-gray-700 border border-gray-400 rounded-lg hover:bg-gray-50 hover:border-gray-500 transition-all duration-300 text-sm font-medium"
+                        >
+                          Generate Another User Story
+                        </button>
+                      </div>
                     )}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
             </div>
           </div>
         </div>
