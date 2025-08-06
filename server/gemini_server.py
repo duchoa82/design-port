@@ -65,7 +65,8 @@ class UserTracker:
             return 'null'
         value_str = str(value)
         if ',' in value_str or '\n' in value_str or '"' in value_str:
-            return f'"{value_str.replace('"', '""')}"'
+            escaped_value = value_str.replace('"', '""')
+            return f'"{escaped_value}"'
         return value_str
     
     def record_user_session(self, session_data):
