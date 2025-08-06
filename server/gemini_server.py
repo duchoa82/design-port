@@ -108,6 +108,10 @@ class UserTracker:
 # Initialize user tracker
 user_tracker = UserTracker()
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy', 'message': 'Server is running'})
+
 @app.route('/api/user-story', methods=['POST'])
 def user_story():
     data = request.get_json()
