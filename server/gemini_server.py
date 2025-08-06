@@ -369,4 +369,5 @@ Project Timeline: {project_timeline}
         return f"Error generating sprint plan: {str(e)}"
 
 if __name__ == '__main__':
-    app.run(port=3001, debug=True) 
+    port = int(os.environ.get('PORT', 3001))
+    app.run(host='0.0.0.0', port=port, debug=False) 
