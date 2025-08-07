@@ -112,7 +112,7 @@ user_tracker = UserTracker()
 
 @app.route('/health', methods=['GET'])
 def health_check():
-    return jsonify({'status': 'healthy', 'message': 'Server is running'})
+    return jsonify({'status': 'healthy', 'message': 'Server is running with tracking fixes v2'})
 
 @app.route('/api/tracking-data', methods=['GET'])
 def get_tracking_data():
