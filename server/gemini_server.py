@@ -114,6 +114,55 @@ user_tracker = UserTracker()
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Server is running with tracking fixes v2'})
 
+@app.route('/test-simple', methods=['GET'])
+def test_simple():
+    """Simple test to verify Railway can write files"""
+    try:
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Try to write a simple test
+        with open('simple_test.log', 'a') as f:
+            f.write(f"Simple test at: {timestamp}\n")
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Simple test successful at {timestamp}',
+            'railway_working': True
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Simple test failed: {str(e)}',
+            'railway_working': False
+        })
+
+@app.route('/check-log', methods=['GET'])
+def check_log():
+    """Check the user interactions log"""
+    try:
+        if os.path.exists('user_interactions.log'):
+            with open('user_interactions.log', 'r') as f:
+                content = f.read()
+            return jsonify({
+                'status': 'success',
+                'log_exists': True,
+                'content': content,
+                'lines': len(content.split('\n')) if content else 0
+            })
+        else:
+            return jsonify({
+                'status': 'success',
+                'log_exists': False,
+                'content': '',
+                'lines': 0
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Check log failed: {str(e)}'
+        })
+
 @app.route('/api/tracking-data', methods=['GET'])
 def get_tracking_data():
     """Private endpoint to view user tracking data"""
@@ -273,19 +322,17 @@ def chat():
                 }
             }
             
-            # Record user session to Google Sheets (with CSV fallback)
-            print(f"🔍 DEBUG: About to record sprint session data: {session_data}")
+            # Simple tracking - just write to a log file
             try:
-                sheets_tracker.record_user_session(session_data)
-                print("✅ DEBUG: Sprint Google Sheets recording successful")
+                from datetime import datetime
+                timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                log_entry = f"{timestamp} - Sprint: {session_data.get('playground_mess_team', 'unknown')} - {session_data.get('playground_mess_timeline', 'unknown')}\n"
+                
+                with open('user_interactions.log', 'a') as f:
+                    f.write(log_entry)
+                print(f"✅ Simple tracking: {log_entry.strip()}")
             except Exception as e:
-                print(f"❌ DEBUG: Sprint Google Sheets recording failed: {e}")
-            
-            try:
-                user_tracker.record_user_session(session_data)  # Keep CSV as backup
-                print("✅ DEBUG: Sprint CSV recording successful")
-            except Exception as e:
-                print(f"❌ DEBUG: Sprint CSV recording failed: {e}")
+                print(f"❌ Simple tracking failed: {e}")
         else:
             response_data = {
                 'conversationId': conversation_id,
@@ -304,19 +351,17 @@ def chat():
             }
         }
     
-        # Record user session to Google Sheets (with CSV fallback)
-        print(f"🔍 DEBUG: About to record session data: {session_data}")
+        # Simple tracking - just write to a log file
         try:
-            sheets_tracker.record_user_session(session_data)
-            print("✅ DEBUG: Google Sheets recording successful")
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            log_entry = f"{timestamp} - User Story: {session_data.get('playground_mess_target', 'unknown')} - {session_data.get('playground_mess_description', 'unknown')}\n"
+            
+            with open('user_interactions.log', 'a') as f:
+                f.write(log_entry)
+            print(f"✅ Simple tracking: {log_entry.strip()}")
         except Exception as e:
-            print(f"❌ DEBUG: Google Sheets recording failed: {e}")
-        
-        try:
-            user_tracker.record_user_session(session_data)  # Keep CSV as backup
-            print("✅ DEBUG: CSV recording successful")
-        except Exception as e:
-            print(f"❌ DEBUG: CSV recording failed: {e}")
+            print(f"❌ Simple tracking failed: {e}")
     else:
         # Fallback for other messages
         response_data = {
