@@ -274,8 +274,18 @@ def chat():
             }
             
             # Record user session to Google Sheets (with CSV fallback)
-            sheets_tracker.record_user_session(session_data)
-            user_tracker.record_user_session(session_data)  # Keep CSV as backup
+            print(f"🔍 DEBUG: About to record sprint session data: {session_data}")
+            try:
+                sheets_tracker.record_user_session(session_data)
+                print("✅ DEBUG: Sprint Google Sheets recording successful")
+            except Exception as e:
+                print(f"❌ DEBUG: Sprint Google Sheets recording failed: {e}")
+            
+            try:
+                user_tracker.record_user_session(session_data)  # Keep CSV as backup
+                print("✅ DEBUG: Sprint CSV recording successful")
+            except Exception as e:
+                print(f"❌ DEBUG: Sprint CSV recording failed: {e}")
         else:
             response_data = {
                 'conversationId': conversation_id,
@@ -295,8 +305,18 @@ def chat():
         }
     
         # Record user session to Google Sheets (with CSV fallback)
-        sheets_tracker.record_user_session(session_data)
-        user_tracker.record_user_session(session_data)  # Keep CSV as backup
+        print(f"🔍 DEBUG: About to record session data: {session_data}")
+        try:
+            sheets_tracker.record_user_session(session_data)
+            print("✅ DEBUG: Google Sheets recording successful")
+        except Exception as e:
+            print(f"❌ DEBUG: Google Sheets recording failed: {e}")
+        
+        try:
+            user_tracker.record_user_session(session_data)  # Keep CSV as backup
+            print("✅ DEBUG: CSV recording successful")
+        except Exception as e:
+            print(f"❌ DEBUG: CSV recording failed: {e}")
     
     response = jsonify(response_data)
     response.headers.add('Access-Control-Allow-Origin', '*')
