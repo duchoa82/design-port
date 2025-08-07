@@ -163,6 +163,70 @@ def check_log():
             'message': f'Check log failed: {str(e)}'
         })
 
+@app.route('/analytics', methods=['GET'])
+def get_analytics():
+    """Get visitor analytics from the log"""
+    try:
+        if not os.path.exists('user_interactions.log'):
+            return jsonify({
+                'status': 'success',
+                'total_interactions': 0,
+                'unique_visitors': 0,
+                'visitor_details': [],
+                'interaction_types': {'user_stories': 0, 'sprint_planning': 0}
+            })
+        
+        with open('user_interactions.log', 'r') as f:
+            lines = f.readlines()
+        
+        # Parse log entries
+        visitors = set()
+        user_stories = 0
+        sprint_planning = 0
+        visitor_details = []
+        
+        for line in lines:
+            if line.strip():
+                parts = line.strip().split(' | ')
+                if len(parts) >= 3:
+                    timestamp = parts[0]
+                    visitor_info = parts[1]
+                    action_info = parts[2]
+                    
+                    # Extract visitor ID
+                    if 'Visitor:' in visitor_info:
+                        visitor_id = visitor_info.split('Visitor:')[1].strip()
+                        visitors.add(visitor_id)
+                        
+                        # Count interaction types
+                        if 'User Story:' in action_info:
+                            user_stories += 1
+                        elif 'Sprint:' in action_info:
+                            sprint_planning += 1
+                        
+                        # Add to visitor details
+                        visitor_details.append({
+                            'timestamp': timestamp,
+                            'visitor_id': visitor_id,
+                            'action': 'User Story' if 'User Story:' in action_info else 'Sprint Planning'
+                        })
+        
+        return jsonify({
+            'status': 'success',
+            'total_interactions': len(lines),
+            'unique_visitors': len(visitors),
+            'visitor_details': visitor_details,
+            'interaction_types': {
+                'user_stories': user_stories,
+                'sprint_planning': sprint_planning
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'Analytics failed: {str(e)}'
+        })
+
 @app.route('/api/tracking-data', methods=['GET'])
 def get_tracking_data():
     """Private endpoint to view user tracking data"""
@@ -322,17 +386,27 @@ def chat():
                 }
             }
             
-            # Simple tracking - just write to a log file
+            # Enhanced tracking with visitor analytics
             try:
                 from datetime import datetime
+                import hashlib
+                
+                # Get visitor IP (with fallback for Railway)
+                visitor_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+                if visitor_ip and ',' in visitor_ip:
+                    visitor_ip = visitor_ip.split(',')[0].strip()
+                
+                # Create visitor ID from IP (hashed for privacy)
+                visitor_id = hashlib.md5(visitor_ip.encode()).hexdigest()[:8] if visitor_ip else 'unknown'
+                
                 timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                log_entry = f"{timestamp} - Sprint: {session_data.get('playground_mess_team', 'unknown')} - {session_data.get('playground_mess_timeline', 'unknown')}\n"
+                log_entry = f"{timestamp} | Visitor:{visitor_id} | IP:{visitor_ip} | Sprint: {session_data.get('playground_mess_team', 'unknown')} - {session_data.get('playground_mess_timeline', 'unknown')}\n"
                 
                 with open('user_interactions.log', 'a') as f:
                     f.write(log_entry)
-                print(f"✅ Simple tracking: {log_entry.strip()}")
+                print(f"✅ Enhanced tracking: {log_entry.strip()}")
             except Exception as e:
-                print(f"❌ Simple tracking failed: {e}")
+                print(f"❌ Enhanced tracking failed: {e}")
         else:
             response_data = {
                 'conversationId': conversation_id,
@@ -351,17 +425,27 @@ def chat():
             }
         }
     
-        # Simple tracking - just write to a log file
+        # Enhanced tracking with visitor analytics
         try:
             from datetime import datetime
+            import hashlib
+            
+            # Get visitor IP (with fallback for Railway)
+            visitor_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+            if visitor_ip and ',' in visitor_ip:
+                visitor_ip = visitor_ip.split(',')[0].strip()
+            
+            # Create visitor ID from IP (hashed for privacy)
+            visitor_id = hashlib.md5(visitor_ip.encode()).hexdigest()[:8] if visitor_ip else 'unknown'
+            
             timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            log_entry = f"{timestamp} - User Story: {session_data.get('playground_mess_target', 'unknown')} - {session_data.get('playground_mess_description', 'unknown')}\n"
+            log_entry = f"{timestamp} | Visitor:{visitor_id} | IP:{visitor_ip} | User Story: {session_data.get('playground_mess_target', 'unknown')} - {session_data.get('playground_mess_description', 'unknown')}\n"
             
             with open('user_interactions.log', 'a') as f:
                 f.write(log_entry)
-            print(f"✅ Simple tracking: {log_entry.strip()}")
+            print(f"✅ Enhanced tracking: {log_entry.strip()}")
         except Exception as e:
-            print(f"❌ Simple tracking failed: {e}")
+            print(f"❌ Enhanced tracking failed: {e}")
     else:
         # Fallback for other messages
         response_data = {
