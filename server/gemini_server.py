@@ -293,7 +293,7 @@ def chat():
                     'text': 'Please provide Team Member and Project Timeline for sprint planning.'
                 }
             }
-    else:
+    elif target_user_match and task_desc_match:
         # Generate user stories
         print(f"🔍 Generating user stories for feature: {feature}")
         user_story_result = generate_user_story(feature)
@@ -317,6 +317,14 @@ def chat():
             print("✅ DEBUG: CSV recording successful")
         except Exception as e:
             print(f"❌ DEBUG: CSV recording failed: {e}")
+    else:
+        # Fallback for other messages
+        response_data = {
+            'conversationId': conversation_id,
+            'lastMessage': {
+                'text': 'Please provide Target User and Task Description for user story generation, or Team Member and Project Timeline for sprint planning.'
+            }
+        }
     
     response = jsonify(response_data)
     response.headers.add('Access-Control-Allow-Origin', '*')
