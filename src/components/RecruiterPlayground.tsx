@@ -215,7 +215,7 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
     setIsGeneratingAI(true);
     try {
       console.log('🤖 AI: Generating user story for:', message);
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const response = await fetch('https://portfolio-ai-production-2766.up.railway.app/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -275,13 +275,9 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
     setStreamingText(null);
     setStreamingIndex(0);
 
-    // Make local decision about how to handle the request
-    const decision = makeLocalDecision(text);
-    console.log(`Decision for "${text}": ${decision}`);
-
-    switch (decision) {
-      case 'CASE_1':
-        // Case 1: Answer about Hoà Trương's information locally
+    // Simple logic: Check if it's a personal question about Hoà Trương
+    if (isPersonalQuestion(text)) {
+      // Answer about Hoà Trương's information locally
         setTimeout(() => {
           const aiText = getMockResponse(text);
           const aiMessage: Message = {
@@ -293,55 +289,13 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
           setMessages((prev) => [...prev, aiMessage]);
           setStreamingText(aiText);
           setStreamingIndex(0);
+        setIsLoading(false);
         }, 1200);
-        return;
-      
-      case 'CASE_2':
-        // Case 2: Send to AI for user story generation
-        // Intent detection for user story requests
-        const userStoryMatch = text.match(/(?:write|draft)?\s*user story for (.+)/i);
-        if (userStoryMatch && userStoryMatch[1]) {
-          const feature = userStoryMatch[1].trim();
-          const aiText = await fetchUserStoryFromAPI(feature);
-          const aiMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: "",
-            sender: "ai",
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, aiMessage]);
-          setStreamingText(aiText);
-          setStreamingIndex(0);
-          setIsLoading(false);
           return;
         }
 
-        // New: If likely a user story but not explicit, ask for confirmation
-        if (isLikelyUserStory(text) && !awaitingUserStory && !conversationId) {
-          setPendingUserStoryFeature(text.trim());
-          setIsLoading(false);
-          return;
-        }
-
-        if (awaitingUserStory) {
-          // Add prefix "Make the user story for" but don't show it to user
-          const aiText = await fetchUserStoryFromAPI(text);
-          const aiMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: "",
-            sender: "ai",
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, aiMessage]);
-          setStreamingText(aiText);
-          setStreamingIndex(0);
-          setAwaitingUserStory(false);
-          setIsLoading(false);
-          return;
-        }
-
-        // Handle subsequent messages in existing conversation (like "more epics")
-        if (conversationId) {
+    // Everything else goes to AI for user story generation
+    try {
           const aiText = await fetchUserStoryAPI(text);
           const aiMessage: Message = {
             id: (Date.now() + 1).toString(),
@@ -353,83 +307,28 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
           setStreamingText(aiText);
           setStreamingIndex(0);
           setIsLoading(false);
-          return;
-        }
-        break;
-      
-      case 'CASE_3':
-        // Case 3: Out of scope
-        const outOfScopeMessage: Message = {
+    } catch (error) {
+      console.error('Error generating response:', error);
+      const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
-          text: "This is out of my scope, I'll update with Hoà. Let's try with the funny voice! 😄",
+        text: "Sorry, I encountered an error. Please try again.",
           sender: "ai",
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, outOfScopeMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
         setIsLoading(false);
-        return;
-      
-      default:
-        // Fallback to original logic
-        setTimeout(() => {
-          const aiText = getMockResponse(text);
-          const aiMessage: Message = {
-            id: (Date.now() + 1).toString(),
-            text: "",
-            sender: "ai",
-            timestamp: new Date(),
-          };
-          setMessages((prev) => [...prev, aiMessage]);
-          setStreamingText(aiText);
-          setStreamingIndex(0);
-        }, 1200);
-        return;
     }
   };
 
-  // Function to make local decision about response strategy
-  const makeLocalDecision = (userMessage: string): string => {
-    // Simple keyword-based decision making (faster than AI call)
+  // Simple function to check if message is about Hoà Trương
+  const isPersonalQuestion = (userMessage: string): boolean => {
     const lowerMessage = userMessage.toLowerCase();
-    
-    // Case 1: Hoà Trương information keywords
-    const case1Keywords = [
+    const personalKeywords = [
       'hello', 'hi', 'hey', 'who are you', 'what do you do', 'contact', 'email', 'phone',
       'cv', 'resume', 'curriculum vitae', 'download', 'pdf', 'document', 'strength', 'weakness',
       'projects', 'working process', 'workflow', 'process', 'career goals', 'experience', 'background', 'dehe'
     ];
-    
-    // Case 2: User story keywords
-    const case2Keywords = [
-      'write', 'draft', 'create', 'generate', 'user story', 'user stories', 'epic', 'epics',
-      'modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve', 'add more',
-      'feature', 'flow', 'process', 'workflow', 'advanced features', 'integration', 'analytics'
-    ];
-    
-    // Check for Case 1 keywords (Hoà Trương information)
-    const hasCase1Keywords = case1Keywords.some(keyword => lowerMessage.includes(keyword));
-    
-    // Check for Case 2 keywords (User stories)
-    const hasCase2Keywords = case2Keywords.some(keyword => lowerMessage.includes(keyword));
-    
-    // Special case: If awaiting user story input, treat any input as Case 2
-    if (awaitingUserStory) {
-      return 'CASE_2';
-    }
-    
-    // Special case: If we have an existing conversation, treat any input as Case 2 (modification)
-    if (conversationId) {
-      return 'CASE_2';
-    }
-    
-    // Decision logic for new conversations
-    if (hasCase2Keywords) {
-      return 'CASE_2';
-    } else if (hasCase1Keywords) {
-      return 'CASE_1';
-    } else {
-      return 'CASE_3'; // Default to out of scope
-    }
+    return personalKeywords.some(keyword => lowerMessage.includes(keyword));
   };
 
   // Typing effect for AI streaming
@@ -661,13 +560,13 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
 
     try {
       // Call API with new prompt-1
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const response = await fetch('https://portfolio-ai-production-2766.up.railway.app/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `Please generate user stories and epics. Target User: ${targetUser}, Task Description: ${taskDescription}. Format the response as markdown with proper user stories, epics, and acceptance criteria.`,
+          message: `Target User: ${targetUser}, Task Description: ${taskDescription}`,
           conversationId: conversationId
         }),
       });
@@ -724,13 +623,13 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
 
     try {
       // Call API with prompt-2
-      const response = await fetch('http://localhost:3001/api/chat', {
+      const response = await fetch('https://portfolio-ai-production-2766.up.railway.app/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: `Create sprint plan for Team Member: ${teamMember}, Project Timeline: ${projectTimeline} ${timelineUnit}. Use the previously generated user stories: ${generatedUserStories}`,
+          message: `Team Member: ${teamMember}, Project Timeline: ${projectTimeline} ${timelineUnit}. Use the previously generated user stories: ${generatedUserStories}`,
           conversationId: conversationId
         }),
       });

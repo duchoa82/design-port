@@ -191,7 +191,7 @@ Update your frontend chat widget to use the API:
 ```javascript
 const sendMessage = async (message) => {
   try {
-    const response = await fetch('http://localhost:3001/api/chat', {
+    const response = await fetch('oh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

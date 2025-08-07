@@ -63,152 +63,32 @@ export default function ChatWidget() {
     setInputValue('');
     setIsLoading(true);
 
-    try {
-      const response = await fetch('http://localhost:3001/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: text.trim(),
-          conversationId: conversationId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-
-      const data = await response.json();
-      
-      // Update conversation ID if it's a new conversation
-      if (data.conversationId && !conversationId) {
-        setConversationId(data.conversationId);
-      }
-
-      // Add AI response to messages
-      if (data.lastMessage) {
-        const aiMessage: Message = {
-          id: data.lastMessage.id,
-          text: data.lastMessage.text,
-          sender: 'ai',
-          timestamp: new Date(data.lastMessage.timestamp)
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Check if this is a user story request and provide fallback
-      if (isUserStoryRequest(text)) {
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: getFallbackUserStoryResponse(text),
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      } else {
-        // Fallback to mock response if API fails
-        const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: getMockResponse(text),
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-      }
-    } finally {
+    // ChatWidget ONLY uses local responses - NEVER calls Railway API
+    console.log('🔍 ChatWidget: Using local response for all questions');
+    setTimeout(() => {
+      const aiText = getMockResponse(text);
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: aiText,
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
       setIsLoading(false);
-    }
+    }, 1200);
   };
 
-  // Function to detect user story requests
-  const isUserStoryRequest = (text: string): boolean => {
-    const lowerText = text.toLowerCase();
-    
-    // Check for new user story requests
-    const newUserStoryKeywords = [
-      'write', 'draft', 'create', 'generate', 'user story', 'user stories',
-      'epic', 'epics', 'feature', 'flow', 'process', 'workflow'
-    ];
-    
-    // Check for modification requests
-    const modificationKeywords = [
-      'modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve',
-      'add more', 'expand', 'include', 'add', 'remove', 'delete', 'replace',
-      'make it', 'can you', 'could you', 'please', 'instead', 'rather than',
-      'more detail', 'more specific', 'clarify', 'explain', 'elaborate',
-      'generate', 'create', 'one more', 'another', 'additional', 'extra',
-      'more epics', 'more stories', 'another epic', 'another story'
-    ];
-    
-    const isNewRequest = newUserStoryKeywords.some(keyword => lowerText.includes(keyword));
-    const isModificationRequest = modificationKeywords.some(keyword => lowerText.includes(keyword));
-    
-    return isNewRequest || isModificationRequest;
-  };
 
-  // Function to get fallback user story response
-  const getFallbackUserStoryResponse = (text: string): string => {
-    const lowerText = text.toLowerCase();
-    
-    // Check if this is a modification request
-    const isModification = ['modify', 'change', 'update', 'edit', 'revise', 'adjust', 'improve',
-                           'add more', 'expand', 'include', 'add', 'remove', 'delete', 'replace',
-                           'make it', 'can you', 'could you', 'please', 'instead', 'rather than',
-                           'more detail', 'more specific', 'clarify', 'explain', 'elaborate',
-                           'generate', 'create', 'one more', 'another', 'additional', 'extra',
-                           'more epics', 'more stories', 'another epic', 'another story'].some(keyword => lowerText.includes(keyword));
-    
-    if (isModification) {
-      return `## Epic 1: Enhanced Feature Management
-
-**User Story 1:** As a user, I want to modify the existing functionality, so that I can better meet my specific requirements.
-
-### Acceptance Criteria:
-- **A/C 1:** Given I want to modify the feature, when I provide specific requirements, then the system should update accordingly.
-- **A/C 2:** Given I need additional functionality, when I request changes, then new features should be integrated seamlessly.
-- **A/C 3:** Given I want to improve user experience, when I suggest modifications, then the interface should be enhanced.
-- **A/C 4:** Given I need better performance, when I request optimizations, then the system should be more efficient.
-
-If you are still curious about user story development or need more detailed requirements, let them contact Hoà Trương now.`;
-    } else {
-      // Extract feature from user message
-      const featureMatch = text.match(/(?:write|draft|create|generate)?\s*(?:user story|user stories|epic|epics)?\s*(?:for)?\s*(.+)/i);
-      const feature = featureMatch ? featureMatch[1].trim() : 'feature';
-      
-      return `## Epic 1: ${feature.charAt(0).toUpperCase() + feature.slice(1)} Feature
-
-**User Story 1:** As a user, I want to ${feature.toLowerCase()}, so that I can achieve my desired outcome efficiently.
-
-### Acceptance Criteria:
-- **A/C 1:** Given I am on the ${feature} page, when I perform the main action, then I should see the expected result.
-- **A/C 2:** Given I encounter an error during ${feature}, when the system fails, then I should see a helpful error message.
-- **A/C 3:** Given I want to customize my ${feature} experience, when I access settings, then I can modify preferences.
-- **A/C 4:** Given I need help with ${feature}, when I look for assistance, then I can find relevant documentation or support.
-
-**User Story 2:** As a system administrator, I want to monitor ${feature} usage, so that I can ensure optimal performance and user satisfaction.
-
-### Acceptance Criteria:
-- **A/C 1:** Given I am monitoring the system, when ${feature} is used, then I should see usage metrics.
-- **A/C 2:** Given I need to troubleshoot issues, when problems occur with ${feature}, then I should receive alerts.
-- **A/C 3:** Given I want to optimize performance, when I analyze ${feature} data, then I should see performance insights.
-- **A/C 4:** Given I need to plan capacity, when I review ${feature} trends, then I should see growth patterns.
-
-This is for the demo content. There are 3 more Epics (e.g., Advanced Features, Integration, Analytics) and about 8 additional User Stories. But in the scope of the demo, I would like to make it simple.`;
-    }
-  };
 
   const getMockResponse = (question: string): string => {
     const lowerQuestion = question.toLowerCase();
     
     if (lowerQuestion.includes('who are you') || lowerQuestion.includes('what do you do')) {
-      return "My name is Truong Duc Hoa, a Product Owner & Associate PM with over 5 years of experience in the tech industry. I'm known for my ability to learn fast and adapt to emerging technologies—having built 4 Web3 products and 8 AI agents from scratch in a short period of time. My goal is to drive meaningful impact through the synergy of product thinking, tech execution, and speed.";
+      return "My name is **Trương Đức Hoà** - a Product Owner & Associate PM with over 3 years of experience in the tech industry.\n\nMy goal is to drive meaningful impact through the synergy of product thinking, tech execution, and speed.\n\nI'm known for my ability to **learn fast** and adapt to emerging technologies, having **built 4 Web3 products and 8 AI agents** from scratch in a short period.";
     }
     
     if (lowerQuestion.includes('project')) {
-      return `I’ve led and delivered multiple impactful projects:\n\n✳︎ 4 Web3 products: Built within 6 months, including NFT platforms and token-gated apps—fully self-taught.\n✳︎ 8 AI agents: Shipped in 3 months, covering livestream summarization, Q&A bots, and internal chat assistants.\n✳︎ Agile product delivery: Owned the end-to-end process—requirement gathering, technical estimation, release planning, writing release notes, and stakeholder demo. Tools: ClickUp, Jira.`;
+      return `I've led and delivered multiple impactful projects, but highlighted:\n\n**4 Web3 products**: Built within 6 months, including NFT platforms and token-gated apps—fully self-taught.\n\n**8 AI agents**: Shipped in 3 months, covering livestream summarization, Q&A bots, and internal chat assistants.`;
     }
     
     if (lowerQuestion.includes('working process') || lowerQuestion.includes('workflow') || lowerQuestion.includes('process')) {
@@ -236,14 +116,27 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
     }
     
     if (lowerQuestion.includes('career goals') || lowerQuestion.includes('moving forward')) {
-      return "I'm looking to join a vision-driven team, working on products that create real impact, where I can bridge the gap between product, engineering, and business. I want to continue exploring the potential of AI, shipping products that are not just feature-complete but user-validated, outcome-oriented, and market-ready—from idea to production.";
+      return "I'm looking to join a **vision-driven team**, working on products that **create real impact**, where I can bridge the gap between product, engineering, and business.\n\nI want to continue **exploring the potential of AI**, **shipping** products that are not just **feature-complete but user-validated**, outcome-oriented, and market-ready—from idea to production.";
     }
     
     if (lowerQuestion.includes('hello') || lowerQuestion.includes('hi')) {
       return "Hi! I'm Truong Duc Hoa, a Product Owner & Associate PM. How can I help you learn more about my work?";
     }
     
-    return "I'm Truong Duc Hoa, a Product Owner & Associate PM with over 3 years of experience in the tech industry. I'm known for my ability to learn fast and adapt to emerging technologies. What specific aspect of my work would you like to know more about?";
+    if (lowerQuestion.includes('strength') || lowerQuestion.includes('weakness')) {
+      return `### **Strengths**
+- **Fast learner, hands-on**: Built 4 Web3 products in 6 months, 8 AI agents in 3 months—all self-taught.
+- **Structured thinker**: Good at turning vague ideas into clear workflows and bridging tech & business.
+- **Self-aware & adaptive**: Understands own limits, prefers long-term growth over chasing hype.
+
+### **Weaknesses**
+- **Overdrive mode**: Tends to go too fast, risking burnout—learning to pace better.
+- **Team instability**: Past failed teams taught the importance of choosing the right people and missions.
+- **FOMO-driven**: Used to chase trends—now shifting focus to long-term impact.
+- **Perfectionist**: Sometimes over-polishes—learning to ship when it's "good enough."`;
+    }
+    
+    return "This is out of my knowledge about Hoà.\n\nI'm designed to answer questions about Hoà Trương's experience, projects, career goals, and work process.\n\nFeel free to ask me about my background, projects, or professional journey!";
   };
 
   const handlePresetQuestion = (question: string) => {
@@ -272,17 +165,18 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
     <>
       {/* Floating Chat Bubble (always visible) */}
       <div
-        className="fixed bottom-6 right-6 z-50"
+        className="fixed bottom-6 right-6 z-50 sm:bottom-6 sm:right-6"
         style={{ pointerEvents: 'auto' }}
       >
         <button
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label={isOpen ? 'Close chat' : 'Open chat'}
-          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border border-[rgba(223,223,223,0.53)] backdrop-blur-[5.9px] bg-[rgba(223,223,223,0.44)] hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-200 ${isOpen ? 'rotate-90' : ''}`}
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border border-[rgba(255,255,255,0.3)] backdrop-blur-[8.7px] bg-[rgba(255,255,255,0.39)] hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-blue-200 ${isOpen ? 'rotate-90' : ''}`}
           style={{
+            borderRadius: '16px',
             boxShadow: '0 4px 30px rgba(0,0,0,0.1)',
-            WebkitBackdropFilter: 'blur(5.9px)',
-            backdropFilter: 'blur(5.9px)',
+            WebkitBackdropFilter: 'blur(8.7px)',
+            backdropFilter: 'blur(8.7px)',
             transition: 'all 0.3s cubic-bezier(.4,2,.6,1)',
           }}
         >
@@ -303,11 +197,12 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
           style={{
             bottom: '104px', // 56px (bubble) + 24px gap
             right: '24px',
-            background: 'rgba(223, 223, 223, 0.44)',
+            background: 'rgba(255, 255, 255, 0.39)',
+            borderRadius: '16px',
             boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
-            backdropFilter: 'blur(5.9px)',
-            WebkitBackdropFilter: 'blur(5.9px)',
-            border: '1px solid rgba(223, 223, 223, 0.53)'
+            backdropFilter: 'blur(8.7px)',
+            WebkitBackdropFilter: 'blur(8.7px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
           }}
         >
           {/* Header */}

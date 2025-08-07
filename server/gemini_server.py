@@ -3,9 +3,10 @@ import re
 import json
 import csv
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import google.generativeai as genai
+from googleSheetsTracker import sheets_tracker
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": ["http://localhost:8080", "http://localhost:8081", "https://*.netlify.app", "https://*.vercel.app"]}}, supports_credentials=True)
@@ -113,6 +114,85 @@ user_tracker = UserTracker()
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'Server is running'})
 
+@app.route('/api/tracking-data', methods=['GET'])
+def get_tracking_data():
+    """Private endpoint to view user tracking data"""
+    try:
+        if os.path.exists(user_tracker.csv_path):
+            with open(user_tracker.csv_path, 'r', encoding='utf-8') as file:
+                data = file.read()
+            return Response(data, mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=user_behavior_tracking.csv'})
+        else:
+            return jsonify({'error': 'Tracking file not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/dashboard', methods=['GET'])
+def admin_dashboard():
+    """Admin dashboard to view and export data"""
+    try:
+        # Try to get data from Google Sheets first
+        stats = sheets_tracker.get_statistics()
+        recent_activity = sheets_tracker.get_recent_data(10)
+        sheet_url = sheets_tracker.get_sheet_url()
+        
+        # Fallback to CSV if Google Sheets is not available
+        if stats['total_sessions'] == 0:
+            tracking_data = []
+            if os.path.exists(user_tracker.csv_path):
+                with open(user_tracker.csv_path, 'r', encoding='utf-8') as file:
+                    import csv
+                    reader = csv.DictReader(file)
+                    tracking_data = list(reader)
+            
+            total_sessions = len(tracking_data)
+            chat_interactions = sum(1 for row in tracking_data if any(row.get(f'chat-bubble-{i}') for i in range(1, 5)) or row.get('chat-bubble-free'))
+            playground_interactions = sum(1 for row in tracking_data if row.get('playground-convo-id'))
+            
+            stats = {
+                'total_sessions': total_sessions,
+                'chat_interactions': chat_interactions,
+                'playground_interactions': playground_interactions
+            }
+            recent_activity = tracking_data[-10:] if tracking_data else []
+        
+        return jsonify({
+            'stats': stats,
+            'recent_activity': recent_activity,
+            'download_url': '/api/tracking-data',
+            'sheet_url': sheet_url
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/export/<format>', methods=['GET'])
+def export_data(format):
+    """Export data in different formats"""
+    try:
+        if not os.path.exists(user_tracker.csv_path):
+            return jsonify({'error': 'No data available'}), 404
+        
+        if format == 'csv':
+            with open(user_tracker.csv_path, 'r', encoding='utf-8') as file:
+                data = file.read()
+            return Response(data, mimetype='text/csv', 
+                          headers={'Content-Disposition': 'attachment; filename=user_behavior_tracking.csv'})
+        
+        elif format == 'json':
+            import csv
+            import json
+            data = []
+            with open(user_tracker.csv_path, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file)
+                data = list(reader)
+            return jsonify(data)
+        
+        else:
+            return jsonify({'error': 'Unsupported format. Use csv or json'}), 400
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/user-story', methods=['POST'])
 def user_story():
     data = request.get_json()
@@ -152,7 +232,7 @@ def chat():
     
     # Extract target user and task description from the message
     target_user_match = re.search(r'Target User:\s*([^,]+)', message)
-    task_desc_match = re.search(r'Task Description:\s*([^.]+)', message)
+    task_desc_match = re.search(r'Task Description:\s*([^,]+)', message)
     
     if target_user_match and task_desc_match:
         target_user = target_user_match.group(1).strip()
@@ -167,7 +247,7 @@ def chat():
         feature = message
     
     # Check if it's a sprint planning request
-    if 'Create sprint plan' in message:
+    if 'Team Member:' in message and 'Project Timeline:' in message:
         # Extract team member and project timeline from the message
         team_member_match = re.search(r'Team Member:\s*([^,]+)', message)
         project_timeline_match = re.search(r'Project Timeline:\s*([^,]+)', message)
@@ -192,6 +272,10 @@ def chat():
                     'text': sprint_result
                 }
             }
+            
+            # Record user session to Google Sheets (with CSV fallback)
+            sheets_tracker.record_user_session(session_data)
+            user_tracker.record_user_session(session_data)  # Keep CSV as backup
         else:
             response_data = {
                 'conversationId': conversation_id,
@@ -210,8 +294,9 @@ def chat():
             }
         }
     
-    # Record user session
-    user_tracker.record_user_session(session_data)
+        # Record user session to Google Sheets (with CSV fallback)
+        sheets_tracker.record_user_session(session_data)
+        user_tracker.record_user_session(session_data)  # Keep CSV as backup
     
     response = jsonify(response_data)
     response.headers.add('Access-Control-Allow-Origin', '*')

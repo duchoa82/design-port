@@ -27,7 +27,7 @@ The table data shows the relative between delivery status with
 After analyzing the data, I saw that the Delivery Status affects the user experience.
 
 - When the Delivery Status is **On-Time**, The rating is always in the **Happy** range
-- When the Delivery Status is Delayed, The rating is always in the **Acceptable or Un-Happy**  range
+- When the Delivery Status is Delayed, The rating is always in the **Acceptable or Un-Happy** range
 
 **So we can say that, to improve the user experiences we should to delivery on-time.**
 
@@ -111,7 +111,7 @@ Back to the datasheet, I have drawn the table data to show the relative between 
 
 Then the metric should be
 
-| Metric |  |
+| Metric | Value |
 | --- | --- |
 | User Feedback | Increase the rate at 4 and 5, decrease the 2 and 3 |
 | Gathering the user pain points from scoring they give to us | Ask users more questions about how they give the low score. |
