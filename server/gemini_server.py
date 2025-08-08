@@ -201,14 +201,18 @@ def get_analytics():
                         # Count interaction types
                         if 'User Story:' in action_info:
                             user_stories += 1
+                            action_type = 'User Story'
                         elif 'Sprint:' in action_info:
                             sprint_planning += 1
+                            action_type = 'Sprint Planning'
+                        else:
+                            action_type = 'Unknown'
                         
                         # Add to visitor details
                         visitor_details.append({
                             'timestamp': timestamp,
                             'visitor_id': visitor_id,
-                            'action': 'User Story' if 'User Story:' in action_info else 'Sprint Planning'
+                            'action': action_type
                         })
         
         return jsonify({
