@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e5e7eb;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #4f46e5;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .interaction-types {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .interaction-card {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .interaction-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #059669;
+        }
+
+        .interaction-label {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+
+        .visitor-details {
+            padding: 30px;
+            background: #f8fafc;
+        }
+
+        .visitor-details h3 {
+            font-size: 1.5rem;
+            color: #374151;
+            margin-bottom: 20px;
+        }
+
+        .visitor-table {
+            width: 100%;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .visitor-table th {
+            background: #4f46e5;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .visitor-table td {
+            padding: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .visitor-table tr:hover {
+            background: #f8fafc;
+        }
+
+        .action-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .action-user-story {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-sprint {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin: 20px 30px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 30px;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .interaction-types {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Portfolio Analytics</h1>
+            <p>Real-time visitor insights and interaction tracking</p>
+        </div>
+
+        <button class="refresh-btn" onclick="loadAnalytics()">
+            🔄 Refresh Data
+        </button>
+
+        <div id="loading" class="loading">
+            <h3>Loading analytics...</h3>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="analytics" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-interactions">0</div>
+                    <div class="stat-label">Total Interactions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="unique-visitors">0</div>
+                    <div class="stat-label">Unique Visitors</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="user-stories">0</div>
+                    <div class="stat-label">User Stories Generated</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="sprint-planning">0</div>
+                    <div class="stat-label">Sprint Plans Created</div>
+                </div>
+            </div>
+
+            <div class="visitor-details">
+                <h3>📈 Recent Activity</h3>
+                <div class="visitor-table">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Visitor ID</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="visitor-table-body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://portfolio-ai-production-2766.up.railway.app';
+
+        async function loadAnalytics() {
+            const loading = document.getElementById('loading');
+            const analytics = document.getElementById('analytics');
+            const error = document.getElementById('error');
+
+            loading.style.display = 'block';
+            analytics.style.display = 'none';
+            error.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/analytics`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayAnalytics(data);
+                } else {
+                    throw new Error(data.message || 'Failed to load analytics');
+                }
+            } catch (err) {
+                error.textContent = `Error loading analytics: ${err.message}`;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayAnalytics(data) {
+            const analytics = document.getElementById('analytics');
+            
+            // Update stats
+            document.getElementById('total-interactions').textContent = data.total_interactions;
+            document.getElementById('unique-visitors').textContent = data.unique_visitors;
+            document.getElementById('user-stories').textContent = data.interaction_types.user_stories;
+            document.getElementById('sprint-planning').textContent = data.interaction_types.sprint_planning;
+
+            // Update visitor table
+            const tableBody = document.getElementById('visitor-table-body');
+            tableBody.innerHTML = '';
+
+            if (data.visitor_details.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" style="text-align: center; padding: 40px; color: #6b7280;">
+                            No interactions yet. Test your portfolio to see data here!
+                        </td>
+                    </tr>
+                `;
+            } else {
+                data.visitor_details.slice(-10).reverse().forEach(visitor => {
+                    const row = document.createElement('tr');
+                    const actionClass = visitor.action === 'User Story' ? 'action-user-story' : 'action-sprint';
+                    
+                    row.innerHTML = `
+                        <td>${formatTimestamp(visitor.timestamp)}</td>
+                        <td><code>${visitor.visitor_id}</code></td>
+                        <td><span class="action-badge ${actionClass}">${visitor.action}</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+
+            analytics.style.display = 'block';
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+        }
+
+        // Load analytics on page load
+        document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadAnalytics, 30000);
+    </script>
+</body>
+</html> 
