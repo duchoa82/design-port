@@ -188,10 +188,11 @@ def get_analytics():
         for line in lines:
             if line.strip():
                 parts = line.strip().split(' | ')
-                if len(parts) >= 3:
+                if len(parts) >= 4:  # timestamp | visitor_info | ip_info | action_info
                     timestamp = parts[0]
                     visitor_info = parts[1]
-                    action_info = parts[2]
+                    ip_info = parts[2]
+                    action_info = parts[3]
                     
                     # Extract visitor ID
                     if 'Visitor:' in visitor_info:
