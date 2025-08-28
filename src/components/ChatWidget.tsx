@@ -84,7 +84,7 @@ export default function ChatWidget() {
     const lowerQuestion = question.toLowerCase();
     
     if (lowerQuestion.includes('who are you') || lowerQuestion.includes('what do you do')) {
-      return "My name is **Trương Đức Hoà** - a Product Owner & Associate PM with over 3 years of experience in the tech industry.\n\nMy goal is to drive meaningful impact through the synergy of product thinking, tech execution, and speed.\n\nI'm known for my ability to **learn fast** and adapt to emerging technologies, having **built 4 Web3 products and 8 AI agents** from scratch in a short period.";
+      return "My name is **Trương Đức Hoà** - a UX Designer cum Product Owner with over 5 years of experience in the tech industry.\n\nMy goal is to drive meaningful impact through the synergy of data, product thinking, tech execution, and speed.\n\nI'm known for my ability to **learn fast** and adapt to emerging technologies, having **built 4 Web3 products and 8 AI agents** from scratch in a short period.";
     }
     
     if (lowerQuestion.includes('project')) {

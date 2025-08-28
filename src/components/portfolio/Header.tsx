@@ -162,19 +162,26 @@ const Header = () => {
                 </div>
               )}
             </div>
-            <Link 
-              to="/profile" 
+            <button 
               className={`relative transition-colors ${
                 activeSection === "profile" 
                   ? "text-foreground bg-primary/10 px-2 py-1 rounded-md" 
                   : "text-muted-foreground hover:text-foreground"
               }`}
+              onClick={() => {
+                const link = document.createElement('a');
+                link.href = '/Hoa Truong - CV.pdf';
+                link.download = 'Hoa Truong - CV.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
             >
-              Profile
+              Download CV
               {activeSection === "profile" && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"></div>
               )}
-            </Link>
+            </button>
           </div>
           <Button 
             variant="default" 

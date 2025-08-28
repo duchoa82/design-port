@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from flask import Flask, send_from_directory
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +20,18 @@ try:
     # Import and run the Flask app
     from gemini_server import app
     logger.info("Successfully imported Flask app")
+
+    # Add route to serve static files from React build
+    @app.route('/')
+    def serve_frontend():
+        return send_from_directory('../public', 'index.html')
+    
+    @app.route('/<path:path>')
+    def serve_static(path):
+        if os.path.exists(os.path.join('../public', path)):
+            return send_from_directory('../public', path)
+        else:
+            return send_from_directory('../public', 'index.html')
 
     if __name__ == '__main__':
         port = int(os.environ.get('PORT', 3001))

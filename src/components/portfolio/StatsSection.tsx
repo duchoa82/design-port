@@ -9,7 +9,7 @@ const StatsSection = () => {
         <div className="w-full">
           <h2 className="text-3xl md:text-4xl font-light mb-8">
             My focus is simple<br />
-            <span className="font-semibold">business to product</span>
+            <span className="font-semibold">user & business to product</span>
           </h2>
           {/* 3 cards in a row, full width, ratio 1:1:2 */}
           <div className="flex flex-row gap-4 mb-8 w-full">

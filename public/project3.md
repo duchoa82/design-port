@@ -1,39 +1,39 @@
-# Data-inform to decrease the delay in delivery order
+# Data-inform to decrease the delay in the delivery order
 
-Improve customer satisfaction with the following data to create a solution that has an opportunity to increase revenue
+## Project Introduction  
+This project addresses a critical challenge: the product was struggling with **delivery delays** while lacking proper tracking of factors that truly impacted **user satisfaction and retention**. The goal was to uncover operational causes of delays and design **data-driven solutions** that both enhance the **user experience** and improve the **efficiency of delivery staff**.
 
-## Understanding
+## 1. Problem Framing  
+As both a **Product Owner** and **UX Designer**, my responsibility is to balance:  
 
-Following the example of data, I understand that products are now facing highly delayed delivery which leads to
-- **Operation Cost.**
-- **User Experiences.**
-Thus, it will affect the user’s retention rate, which is the main factor in increasing the company's revenue.
+- **Business goals**: revenue growth, reducing operational costs
+- **User needs**: reliable delivery, trust, and satisfaction
 
-So, in this presentation, I like to go through the solutions that help the product increase the
-- **On-Time delivery**
-- **User experiences.**
-- **Retention Rate.**
+From recent data, I noticed a critical issue: **delivery delays**.  
+This directly impacts:  
+- **Operational Cost** (inefficient logistics)  
+- **User Experience** (frustration, uncertainty)  
+- **Retention Rate** (users churn when trust is lost)  
 
-## **Data Analysis**
-**Delayed Order Factor**
+**My Mission:** Use **data-driven insights** to design solutions that improve on-time delivery, enhance user experience, and ultimately increase retention.
 
-After reading all the requirements, it would be nice to have logical thinking to clarify the task.
 
-The table data shows the relative between delivery status with
-- Vehicle.
-- Distance.
-- Hub Location.
+## 2. Data Exploration & Insights  
+I worked closely with the data to understand the root causes.
 ![](/projects/project-details/project3/project3-img1.png)
-After analyzing the data, I saw that the Delivery Status affects the user experience.
 
-- When the Delivery Status is **On-Time**, The rating is always in the **Happy** range
-- When the Delivery Status is Delayed, The rating is always in the **Acceptable or Un-Happy** range
+### Key Observations
+- **Vehicle type is the strongest factor**  
+  - Bike deliveries → usually on-time  
+  - Truck deliveries → often delayed  
+- **Hub location influences vehicle choice**  
+- **Distance and driver ID had low correlation**
 
-**So we can say that, to improve the user experiences we should to delivery on-time.**
+### Impact on User Experience
+- On-time = consistently *Happy ratings*  
+- Delayed = ratings fall to *Acceptable* or *Unhappy*  
 
-**Next, we will dig into “What makes the delivery delayed?”**
-
-To find the answer to the question above, I like to find the relevance between Delivery Status and other data such as Vehicle, Distances, Hub Location, and Driver ID.
+**Insight:** Delays are not just operational inefficiencies — they translate into **negative user emotions** and lost retention.
 
 | **Factor** | **Relationship** | **Impact** |
 | --- | --- | --- |
@@ -41,21 +41,13 @@ To find the answer to the question above, I like to find the relevance between D
 | **Hub Location** | Not related directly | The Hub location affects Vehicle value. |
 | **Distances, Driver ID** | Not affected at all | The Distances longer not affect the delivery status. |
 
-**Conclusion**
+**Conclusion**: **Delayed Order is affected by the Vehicle, this is the Truck**
 
-- **Delayed Order is affected by the Vehicle, this is the Truck**
 
-### Current Retention Rate
+---
 
-To calculate the current Retention Percentage. I like to analyze the percentage of customer happiness based on Likert scoring.
-Table view customer feedback follows the Delivery Status.
-
-![](/projects/project-details/project3/project3-img2.png)
-Percentage of customer feedback
-![](/projects/project-details/project3/project3-img3.png)
-I assume that which rate has its retention rate (should be reflected in the real data)
-
-Easy to see that, on the Likert Scoring to show the happiness of customers to our services, we have 300 users in a month with 3 range of users satisfied.
+## 3. Connecting Data to Retention  
+Analyzing customer feedback (Likert scale, 300 monthly users): Easy to see that, on the Likert scale to show the happiness of customers with our services, we have 300 users in a month with 3 range of users satisfied.
 
 | **Rate** | **Percentage** |
 |---------|---------------|
@@ -64,56 +56,72 @@ Easy to see that, on the Likert Scoring to show the happiness of customers to ou
 | 4        | 30.1%          |
 | 5        | 19.7%          |
 
+As a **Product Owner**, I interpret this as:  
+- Improving delivery time is not only a logistics fix but a **revenue lever**.  
+- Each delay reduced satisfaction → directly threatening **lifetime value (LTV)**. 
 
-## **Product Research**
+To calculate the current Retention Percentage. I analyzed the percentage of customer happiness based on Likert scoring.
+Table view customer feedback follows the Delivery Status.
 
-To answer these questions, I like to make a simple blueprint combined with job steps and How-Might-We statements to figure out the outcomes.
-![](/projects/project-details/project3/project3-img4.png)
-**Outcomes**
-
-The data shows the problems and the cause of the delayed order. The root cause of the truck being delayed is still undiscovered.
-Thus, I like to make assumptions based on my research with the observations, and the support from ChatGPT & Gemini.
-
-From all the assumptions, I like to list all the outcomes for the system to help drivers deliver on time below.
-
-| Outcomes (How-might-we statement) | Purpose |
-| --- | --- |
-| **Provides the optimized routine for the driver based on their delivery package.** | Help the drivers drive to their destination with a smarter schedule without effort. |
-| **Provides the traffic information for the drivers.** | Help the drivers avoid the traffic jams which may affect the delivery time |
-| **Provides more categories to classify the order. It helps the order have more delivery method** | Help reduce the order delivery by Truck. |
-| **Optimize the estimated receive time from the collected data** | Collecting pickup to delivery time following the distance, hub, or delivery area helps eta the shipped time better.  |
-| **Gather the delayed reasons to improve** | The data set now lacks the reason for why delayed Driver which may help the product team to have better solutions. |
-
-## **STRATEGY**
-
-Building the system with Data-Driven and Machine Learning reduces the delayed time
-
-**Phase 1**
-
-- **Integrate with Map System API**, to give the traffic information to both driver and user. It not only helps drivers to be flexible in their route but also gives the reason for delays to the user.
-- **Gathering the Delivery location**, then build the routine for the Driver.
-- **Gathering the delayed factors**, and **time delivery** in each area ****to improve for the next phases.
-
-**Phase 2**
-
-- **Build the classify system,** to help the system filter the order. It helps to assign the delivery vehicle better.
-- **Continue building the Machine Learning** based on **Traffic information**, **time delivery**, and **delivery location** to provide a better estimate of time, and driver’s route.
+![](/projects/project-details/project3/project3-img2.png)
+Percentage of customer feedback
+![](/projects/project-details/project3/project3-img3.png)
 
 ---
 
-## Metric Definition Successful Metric (KPIs)
+## 4. From Data to Design Opportunities
 
-To calculate the metric, I assume that the Delayed Order affects the **User’s Retention** which is not shown in the data sheet.
+To answer these questions, I made a simple blueprint combined with job steps and How-Might-We statements to figure out the outcomes.
+![](/projects/project-details/project3/project3-img4.png)
 
-Thus, to define the successful metric or how many percentages of Delayed Orders need to be covert, we need to target the Retention metric instead.
+Here’s how I reframed insights into **How Might We (HMW)** opportunities:  
 
-Back to the datasheet, I have drawn the table data to show the relative between Customer Feedback and the Delivery Status.
+| Data Insight | HMW Question | Product / UX Solution |
+|--------------|--------------|------------------------|
+| Trucks cause delays | HMW reduce delay risk for truck deliveries? | Optimize **routing & scheduling** with traffic data |
+| Users don’t understand delays | HMW improve transparency for users? | Show **real-time traffic/delay reasons** in-app |
+| One-size-fits-all assignment | HMW assign vehicles smarter? | **Order categorization** to allocate bike vs truck |
+| Missing qualitative data | HMW learn more about delays? | Add **driver inputs** (traffic, load size, weather) |
 
-Then the metric should be
 
-| Metric | Value |
-| --- | --- |
-| User Feedback | Increase the rate at 4 and 5, decrease the 2 and 3 |
-| Gathering the user pain points from scoring they give to us | Ask users more questions about how they give the low score. |
-| Gathering the data to conclude about the relative between Rate Scale and Retention  | To set the better KPIs and the solution for the revenue. |
-| Amount of Delayed Order | Reduce the delayed order through the phases. |
+---
+
+## 5. Product Strategy & Roadmap
+With all insights and data above, as a Product Owner. I made the final product phase for this issue, with the goal is building the system with Data-Driven and Machine Learning reduces the delay time
+
+**Phase 1 – Foundation**  
+- Integrate **traffic API** → dynamic routes & transparency for users  
+- Build **optimized delivery routines** by location & time  
+- Start **logging reasons for delay**  
+
+**Phase 2 – Scale & Intelligence**  
+- Implement **classification system** for vehicle assignment  
+- Develop **machine learning models** to predict ETA & delays  
+- Use insights to continuously improve retention-focused KPIs  
+
+---
+
+## 6. Success Metrics (KPIs)
+To evaluate the solutions by tracking the data, I made the Data KPIs below
+
+- **User-Centric**  
+  - Increase % of 4–5 ratings, reduce 2–3  
+  - Improve NPS (Net Promoter Score)  
+- **Business-Centric**  
+  - Increase retention rate by X% over 6 months  
+  - Reduce operational cost linked to failed deliveries  
+- **Operational**  
+  - Reduce monthly delayed orders  
+  - Improve ETA accuracy (predicted vs actual)
+
+---
+
+## 7. Reflection  
+Wearing both hats — **Product Owner & UX Designer** — shaped my approach:  
+
+- As **PO**, I saw delays as a business threat and defined retention as the north star metric.  
+- As **UX Designer**, I translated data into **user pain points** and **experience-focused solutions**.
+- By combining both, I ensured that the strategy was **data-driven**, **user-centered**, and **business-aligned**.
+
+This project reinforced my belief: **Great product design happens when data insights and user empathy meet business outcomes.**
+

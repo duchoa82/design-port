@@ -1,6 +1,7 @@
 import Header from "@/components/portfolio/Header";
 import HeroSection from "@/components/portfolio/HeroSection";
 import StatsSection from "@/components/portfolio/StatsSection";
+import UXWorkingFlow from "@/components/portfolio/UXWorkingFlow";
 import ProjectsSection from "@/components/portfolio/ProjectsSection";
 import TopicsSection from "@/components/portfolio/TopicsSection";
 import FooterSection from "@/components/portfolio/FooterSection";
@@ -14,6 +15,7 @@ const Portfolio = () => {
       <Header />
       <HeroSection />
       <StatsSection />
+      <UXWorkingFlow />
       <ProjectsSection />
       {/* <TopicsSection /> */}
       <RecruiterPlayground />
