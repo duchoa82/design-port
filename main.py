@@ -33,11 +33,22 @@ try:
         else:
             return send_from_directory('../public', 'index.html')
 
+    # Simple health check endpoint
+    @app.route('/api/health')
+    def health_check():
+        return {'status': 'healthy', 'message': 'Service is running'}, 200
+
     if __name__ == '__main__':
         port = int(os.environ.get('PORT', 3001))
         logger.info(f"Starting server on port: {port}")
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Python path: {sys.path}")
+        
+        # Start the app
         app.run(host='0.0.0.0', port=port, debug=False)
         
 except Exception as e:
     logger.error(f"Error starting server: {e}")
+    import traceback
+    logger.error(f"Traceback: {traceback.format_exc()}")
     raise 
