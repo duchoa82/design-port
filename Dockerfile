@@ -1,31 +1,25 @@
-# Optimized Dockerfile for Railway deployment
-FROM python:3.11-slim
+# Ultra-lightweight Dockerfile for Railway
+FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Install only essential dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+# Install minimal dependencies
+RUN apk add --no-cache gcc musl-dev
 
-# Install Python dependencies first (better caching)
+# Copy and install Python requirements
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy only necessary files
+# Copy only essential files
 COPY server/ ./server/
 COPY main.py .
 
-# Set environment variables
+# Set environment
 ENV PORT=3001
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE $PORT
-
-# Simple health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:$PORT/api/health')" || exit 1
 
 CMD ["python", "main.py"] 
