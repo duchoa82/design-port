@@ -25,3 +25,13 @@ dist-ssr
 
 # Local Netlify folder
 .netlify
+
+# Sensitive files
+server/credentials.json
+server/.env
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
