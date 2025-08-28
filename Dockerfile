@@ -1,38 +1,31 @@
-# Multi-stage build for React frontend + Python backend
-FROM node:18-alpine AS frontend-builder
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-# Python backend stage
+# Optimized Dockerfile for Railway deployment
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install only essential dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copy Python requirements and install
+# Install Python dependencies first (better caching)
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
+# Copy only necessary files
 COPY server/ ./server/
 COPY main.py .
-
-# Copy built frontend from previous stage
-COPY --from=frontend-builder /app/dist ./public
 
 # Set environment variables
 ENV PORT=3001
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE $PORT
+
+# Simple health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:$PORT/api/health')" || exit 1
 
 CMD ["python", "main.py"] 
