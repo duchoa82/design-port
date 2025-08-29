@@ -2,20 +2,20 @@ import ProcessCard from "@/components/ui/process-card";
 
 const UXWorkingFlow = () => {
   return (
-    <section className="pt-32 pb-20 bg-background">
-      <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-light text-foreground mb-2">
+    <section className="pt-16 sm:pt-20 md:pt-24 lg:pt-32 pb-12 sm:pb-16 md:pb-20 bg-background">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="text-center mb-8 sm:mb-12 md:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-light text-foreground mb-2">
             <span className="font-light">Working</span>{" "}
             <span className="font-bold">Process</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
             An end-to-end approach: starting with user and market research, shaping solutions through design thinking and data insights, and validating with user testing.
           </p>
         </div>
 
         {/* Process Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl mx-auto mt-12 sm:mt-16 md:mt-20 lg:mt-24">
           <ProcessCard
             number="01"
             title="Requirement Collection"
@@ -48,8 +48,6 @@ const UXWorkingFlow = () => {
             rotation={2}
           />
         </div>
-
-
       </div>
     </section>
   );

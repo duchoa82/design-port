@@ -53,7 +53,7 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
     <div className={`relative ${className}`}>
       {/* Main Card Container */}
       <div 
-        className="relative w-96 h-96 rounded-xl shadow-lg backdrop-blur-md"
+        className="relative w-80 sm:w-96 h-80 sm:h-96 rounded-xl shadow-lg backdrop-blur-md"
         style={{
           background: 'rgba(255, 255, 255, 0.9)',
           boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
@@ -65,17 +65,17 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
       >
         {/* Pushpin */}
         <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 z-10">
-          <div className={`w-4 h-6 ${colors.pushpin} rounded-full shadow-lg relative`}>
+          <div className={`w-3 h-5 sm:w-4 sm:h-6 ${colors.pushpin} rounded-full shadow-lg relative`}>
             {/* Pushpin highlight */}
-            <div className="absolute top-1 left-1 w-2 h-2 bg-white rounded-full opacity-60"></div>
+            <div className="absolute top-1 left-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full opacity-60"></div>
             {/* Pushpin shadow */}
-            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-3 h-1 bg-black rounded-full opacity-20"></div>
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-2 h-0.5 sm:w-3 sm:h-1 bg-black rounded-full opacity-20"></div>
           </div>
         </div>
 
         {/* Inner Content Area */}
         <div 
-          className="absolute top-8 left-4 right-4 bottom-6 rounded-lg p-4 backdrop-blur-sm"
+          className="absolute top-6 sm:top-8 left-3 sm:left-4 right-3 sm:right-4 bottom-4 sm:bottom-6 rounded-lg p-3 sm:p-4 backdrop-blur-sm"
           style={{
             background: variant === 'default' ? 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)' :
                        variant === 'success' ? 'linear-gradient(135deg, #bbf7d0 0%, #86efac 100%)' :
@@ -88,22 +88,22 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
           }}
         >
           {/* Number */}
-          <div className={`text-4xl font-bold mb-3 opacity-80 ${colors.number}`}>
+          <div className={`text-3xl sm:text-4xl font-bold mb-2 sm:mb-3 opacity-80 ${colors.number}`}>
             {number}
           </div>
           
           {/* Title */}
-          <h3 className="text-xl font-semibold text-gray-800 mb-3">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3">
             {title}
           </h3>
           
           {/* Description */}
-          <div className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
+          <div className="text-xs sm:text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
             <ReactMarkdown
               rehypePlugins={[rehypeRaw]}
               components={{
                 strong: ({node, ...props}) => <strong className="font-semibold text-gray-800" {...props} />,
-                p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />
+                p: ({node, ...props}) => <p className="mb-1 sm:mb-2 last:mb-0" {...props} />
               }}
             >
               {description}

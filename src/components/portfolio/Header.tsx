@@ -87,19 +87,21 @@ const Header = () => {
     <header className={`bg-card border-b border-border transition-transform duration-300 ${
       isVisible ? 'translate-y-0' : '-translate-y-full'
     } ${lastScrollY > 100 ? 'fixed top-0 left-0 right-0 shadow-lg' : 'relative'} z-[99999999]`}>
-      <div className="container mx-auto px-6 py-4">
+      <div className="container mx-auto px-4 sm:px-6 py-4">
         <nav className="flex items-center justify-between">
           <Link to="/portfolio" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <img 
               src="/logo.png" 
               alt="Portfolio Logo" 
-              className="w-8 h-8 object-contain"
+              className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
             />
-            <span className="text-xl font-semibold text-foreground">
+            <span className="text-lg sm:text-xl font-semibold text-foreground">
               Portfolio
             </span>
           </Link>
-          <div className="hidden md:flex items-center space-x-8 relative" style={{ zIndex: 99999999 }}>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8 relative" style={{ zIndex: 99999999 }}>
             <div className="relative" ref={menuRef} style={{ zIndex: 99999999 }}>
               <button
                 className={`relative transition-colors cursor-pointer select-none px-2 py-1 rounded-md focus:outline-none ${
@@ -119,10 +121,10 @@ const Header = () => {
               {open && (
                 <div
                   id="projects-dropdown"
-                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-[600px] bg-card border border-border rounded-lg shadow-lg p-4 mt-2"
+                  className="absolute top-full left-1/2 transform -translate-x-1/2 w-[500px] lg:w-[600px] bg-card border border-border rounded-lg shadow-lg p-4 mt-2"
                   style={{ zIndex: 99999999 }}
                 >
-                  <div className="flex flex-row gap-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
                     {projects.map((project, idx) => (
                       <Link
                         key={idx}
@@ -142,7 +144,7 @@ const Header = () => {
                           }, 100);
                         }}
                       >
-                        <div className="w-full h-24 rounded-[4px] overflow-hidden bg-muted flex items-center justify-center mb-3">
+                        <div className="w-full h-20 sm:h-24 rounded-[4px] overflow-hidden bg-muted flex items-center justify-center mb-3">
                           <img
                             src={project.img}
                             alt={project.name}
@@ -151,7 +153,7 @@ const Header = () => {
                           />
                         </div>
                         <div className="flex-1 flex flex-col justify-between">
-                          <h3 className="font-semibold text-foreground mb-2 text-sm text-left leading-tight">{project.name}</h3>
+                          <h3 className="font-semibold text-foreground mb-2 text-xs sm:text-sm text-left leading-tight">{project.name}</h3>
                           <span className="text-xs text-primary uppercase tracking-wide font-medium cursor-pointer block transition-colors duration-200 group-hover:text-blue-600 text-left">
                             Read more
                           </span>
@@ -183,28 +185,47 @@ const Header = () => {
               )}
             </button>
           </div>
-          <Button 
-            variant="default" 
-            className="relative bg-white/10 backdrop-blur-md text-black font-medium px-6 py-2.5 rounded-xl hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 group overflow-hidden"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-            }}
-            onClick={() => {
-              const recruiterSection = document.querySelector('[data-section="recruiter-playground"]');
-              if (recruiterSection) {
-                recruiterSection.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-pink-300/40 via-purple-300/40 to-blue-300/40 rounded-xl"></div>
-            <span className="relative z-10 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400 fill-current" style={{ animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
-              Play with My AI Brain
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-xl"></div>
-          </Button>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              className="p-2 text-foreground hover:bg-muted rounded-md transition-colors"
+              onClick={() => setOpen(!open)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+          </div>
         </nav>
+
+        {/* Mobile Navigation Menu */}
+        {open && (
+          <div className="md:hidden mt-4 pb-4 border-t border-border">
+            <div className="flex flex-col space-y-3 pt-4">
+              <button 
+                className="text-left text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                onClick={() => setOpen(false)}
+              >
+                Projects
+              </button>
+              <button 
+                className="text-left text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = '/Hoa Truong - CV.pdf';
+                  link.download = 'Hoa Truong - CV.pdf';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  setOpen(false);
+                }}
+              >
+                Download CV
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
