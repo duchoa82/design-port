@@ -1,0 +1,23 @@
+# Python backend files (not needed for frontend build)
+server/
+requirements.txt
+main.py
+Dockerfile
+.dockerignore
+railway.toml
+env.production
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Other files not needed for frontend
+*.md
+.git/
+.gitignore
