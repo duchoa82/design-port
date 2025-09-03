@@ -9,6 +9,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import promptSheet from './prompt-sheet.js';
 import UserTracker from './userTracking.js';
+import { WebCrawler } from './crawler.js';
+import AIService from './ai-service.js';
+import WebAnalyzerStorage from './web-analyzer-storage.js';
+import simpleCrawl from './simple-crawler.js';
+import demoAnalyze from './demo-analyzer.js';
+import tokenApi from './token-api.js';
+import adminApi from './admin-api.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,8 +32,24 @@ if (process.env.GEMINI_API_KEY) {
 // Initialize User Tracker
 const userTracker = new UserTracker();
 
+// Initialize Web Analyzer Services
+const webCrawler = new WebCrawler();
+const aiService = new AIService();
+const webAnalyzerStorage = new WebAnalyzerStorage();
+
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://unpkg.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"]
+    }
+  }
+}));
 app.use(compression());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
@@ -36,6 +59,7 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:8080',
   'http://localhost:8081',
   'http://localhost:8082',
@@ -48,13 +72,18 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow all origins in development
+    if (process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Rate limiting
@@ -1071,6 +1100,907 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Web Analyzer API endpoints
+app.get('/api/web-analyzer/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Web Analyzer API is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.post('/api/web-analyzer/simple-test', async (req, res) => {
+  try {
+    const { url } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+    
+    const result = await simpleCrawl(url);
+    res.json({ success: true, data: result });
+    
+  } catch (error) {
+    console.error('Simple test error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/web-analyzer/demo', (req, res) => {
+  try {
+    const { url, userId } = req.body;
+    
+    if (!url || !userId) {
+      return res.status(400).json({ error: 'URL and userId are required' });
+    }
+    
+    const result = demoAnalyze(url);
+    res.json({
+      success: true,
+      analysis: result.analysis,
+      metaData: result.metaData,
+      timestamp: result.timestamp
+    });
+    
+  } catch (error) {
+    console.error('Demo error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/web-analyzer/analyze', async (req, res) => {
+  try {
+    const { url, userId } = req.body;
+
+    // Validate input
+    if (!url || !userId) {
+      return res.status(400).json({ 
+        error: 'URL and userId are required' 
+      });
+    }
+
+    // Check rate limit
+    if (!webAnalyzerStorage.canAnalyze(userId)) {
+      return res.status(429).json({ 
+        error: 'Rate limit exceeded. Only 1 analysis per day allowed.' 
+      });
+    }
+
+    // Validate URL
+    try {
+      new URL(url);
+    } catch (e) {
+      return res.status(400).json({ 
+        error: 'Invalid URL format' 
+      });
+    }
+
+    // Crawl website
+    const crawlData = await webCrawler.crawlWebsite(url);
+
+    // Analyze with AI
+    const analysis = await aiService.analyzeWebsite(crawlData);
+
+    // Save to storage
+    const savedEntry = webAnalyzerStorage.saveAnalysis(userId, url, analysis, crawlData);
+
+    // Record rate limit
+    webAnalyzerStorage.recordAnalysis(userId);
+
+    res.json({
+      success: true,
+      analysis,
+      metaData: crawlData.metaData,
+      timestamp: savedEntry.timestamp
+    });
+
+  } catch (error) {
+    console.error('Web analyzer error:', error);
+    res.status(500).json({ 
+      error: error.message || 'Analysis failed',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+app.get('/api/web-analyzer/history/:userId', (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { limit = 10 } = req.query;
+    
+    const history = webAnalyzerStorage.getHistory(userId, parseInt(limit));
+    
+    res.json({
+      success: true,
+      history
+    });
+  } catch (error) {
+    console.error('Get history error:', error);
+    res.status(500).json({ 
+      error: 'Failed to get history' 
+    });
+  }
+});
+
+// Serve admin dashboard (must be before /api routes)
+app.get('/admin', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Management Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.3)', opacity: '0' },
+                            '50%': { transform: 'scale(1.05)' },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl" x-data="adminDashboard()" x-init="loadData()">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2 text-gray-800">
+                        Token Management Admin
+                    </h1>
+                    <p class="text-gray-600">Manage user token requests and system status</p>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-500">Last Updated</div>
+                    <div class="text-gray-800 font-medium" x-text="new Date().toLocaleTimeString()"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total Users Card -->
+            <div class="bg-white rounded-lg border border-gray-300 p-6">
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-text="stats.totalUsers">0</p>
+                    <p class="text-sm text-gray-500">Total Users</p>
+                </div>
+            </div>
+            
+            <!-- Pending Requests Card -->
+            <div class="bg-white rounded-lg border border-gray-300 p-6">
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-text="stats.pendingRequests">0</p>
+                    <p class="text-sm text-gray-500">Pending Requests</p>
+                </div>
+            </div>
+            
+            <!-- Total Tokens Used Card -->
+            <div class="bg-white rounded-lg border border-gray-300 p-6">
+                <div>
+                    <p class="text-2xl font-bold text-gray-800" x-text="stats.totalTokensUsed">0</p>
+                    <p class="text-sm text-gray-500">Tokens Used</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Management Tabs -->
+        <div class="bg-white rounded-lg border border-gray-300">
+            <!-- Tab Navigation -->
+            <div class="flex border-b border-gray-300">
+                <button 
+                    @click="activeTab = 'pending'"
+                    :class="activeTab === 'pending' ? 'bg-gray-100 text-gray-800 border-b-2 border-gray-800' : 'text-gray-600 hover:text-gray-800'"
+                    class="flex-1 px-6 py-3 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-clock"></i>
+                    Pending Requests
+                </button>
+                <button 
+                    @click="activeTab = 'approved'"
+                    :class="activeTab === 'approved' ? 'bg-gray-100 text-gray-800 border-b-2 border-gray-800' : 'text-gray-600 hover:text-gray-800'"
+                    class="flex-1 px-6 py-3 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-check-circle"></i>
+                    Approved Requests
+                </button>
+                <button 
+                    @click="activeTab = 'rejected'"
+                    :class="activeTab === 'rejected' ? 'bg-gray-100 text-gray-800 border-b-2 border-gray-800' : 'text-gray-600 hover:text-gray-800'"
+                    class="flex-1 px-6 py-3 font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                    <i class="fas fa-times-circle"></i>
+                    Rejected Requests
+                </button>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                <!-- Pending Requests Tab -->
+                <div x-show="activeTab === 'pending'" class="space-y-4">
+                    <div class="flex justify-end items-center mb-4">
+                        <button @click="loadRequests()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded border border-gray-300 transition-all duration-200 flex items-center gap-2">
+                            <i class="fas fa-sync-alt"></i>
+                            <span class="font-medium">Refresh</span>
+                        </button>
+                    </div>
+                    
+                    <div x-show="requests.length === 0" class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-inbox text-2xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500 text-lg font-medium">No pending requests</p>
+                        <p class="text-gray-400 text-sm mt-1">All requests have been processed</p>
+                    </div>
+                    
+                    <div x-show="requests.length > 0" class="space-y-4">
+                        <template x-for="request in requests" :key="request.id">
+                            <div class="bg-white rounded-lg border border-gray-300 p-4">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <p class="font-bold text-gray-800">Email:</p>
+                                        <p class="text-gray-600" x-text="request.email"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Reason:</p>
+                                        <p class="text-gray-600" x-text="request.reason"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Fingerprint:</p>
+                                        <p class="text-gray-600 font-mono text-xs break-all" x-text="request.fingerprint"></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4 pt-4 border-t border-gray-200">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Request ID:</p>
+                                            <p class="text-gray-600 font-mono text-xs" x-text="request.id"></p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Created:</p>
+                                            <p class="text-gray-600 text-sm" x-text="new Date(request.createdAt).toLocaleString()"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button 
+                                        @click="approveRequest(request.id)"
+                                        class="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded border border-green-300"
+                                    >
+                                        Approve
+                                    </button>
+                                    <button 
+                                        @click="rejectRequest(request.id)"
+                                        class="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded border border-red-300"
+                                    >
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- All Users Tab -->
+                <!-- Approved Requests Tab -->
+                <div x-show="activeTab === 'approved'" class="space-y-4">
+                    <div class="flex justify-end items-center mb-4">
+                        <button @click="loadRequests('approved')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded border border-gray-300">
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <div x-show="approvedRequests.length === 0" class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check-circle text-2xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500 text-lg font-medium">No approved requests</p>
+                    </div>
+                    
+                    <div x-show="approvedRequests.length > 0" class="space-y-4">
+                        <template x-for="request in approvedRequests" :key="request.id">
+                            <div class="bg-white rounded-lg border border-gray-300 p-4">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <p class="font-bold text-gray-800">Email:</p>
+                                        <p class="text-gray-600" x-text="request.email"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Reason:</p>
+                                        <p class="text-gray-600" x-text="request.reason"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Fingerprint:</p>
+                                        <p class="text-gray-600 font-mono text-xs break-all" x-text="request.fingerprint"></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4 pt-4 border-t border-gray-200">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Request ID:</p>
+                                            <p class="text-gray-600 font-mono text-xs" x-text="request.id"></p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Approved:</p>
+                                            <p class="text-gray-600 text-sm" x-text="new Date(request.approvedAt).toLocaleString()"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Rejected Requests Tab -->
+                <div x-show="activeTab === 'rejected'" class="space-y-4">
+                    <div class="flex justify-end items-center mb-4">
+                        <button @click="loadRequests('rejected')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded border border-gray-300">
+                            Refresh
+                        </button>
+                    </div>
+                    
+                    <div x-show="rejectedRequests.length === 0" class="text-center py-8">
+                        <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-times-circle text-2xl text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500 text-lg font-medium">No rejected requests</p>
+                    </div>
+                    
+                    <div x-show="rejectedRequests.length > 0" class="space-y-4">
+                        <template x-for="request in rejectedRequests" :key="request.id">
+                            <div class="bg-white rounded-lg border border-gray-300 p-4">
+                                <div class="grid grid-cols-3 gap-4 mb-4">
+                                    <div>
+                                        <p class="font-bold text-gray-800">Email:</p>
+                                        <p class="text-gray-600" x-text="request.email"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Reason:</p>
+                                        <p class="text-gray-600" x-text="request.reason"></p>
+                                    </div>
+                                    
+                                    <div>
+                                        <p class="font-bold text-gray-800">Fingerprint:</p>
+                                        <p class="text-gray-600 font-mono text-xs break-all" x-text="request.fingerprint"></p>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-4 pt-4 border-t border-gray-200">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Request ID:</p>
+                                            <p class="text-gray-600 font-mono text-xs" x-text="request.id"></p>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-gray-800 mb-2">Rejected:</p>
+                                            <p class="text-gray-600 text-sm" x-text="new Date(request.approvedAt).toLocaleString()"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Users Section -->
+        <div class="bg-white rounded-lg border border-gray-300 mt-6">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">All Users</h3>
+                    <button @click="loadUsers()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded border border-gray-300">
+                        Refresh
+                    </button>
+                </div>
+                
+                <div x-show="users.length === 0" class="text-center py-8">
+                    <div class="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-users text-2xl text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-500 text-lg font-medium">No users found</p>
+                </div>
+                
+                <div x-show="users.length > 0" class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-300">
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-fingerprint text-gray-600 mr-2"></i>
+                                    Fingerprint
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-coins text-gray-600 mr-2"></i>
+                                    Tokens
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-chart-line text-gray-600 mr-2"></i>
+                                    Used
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-clock text-gray-600 mr-2"></i>
+                                    Last Used
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-calendar text-gray-600 mr-2"></i>
+                                    Created
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-inbox text-gray-600 mr-2"></i>
+                                    Requests
+                                </th>
+                                <th class="text-left py-3 px-4 font-semibold text-gray-800">
+                                    <i class="fas fa-plus text-gray-600 mr-2"></i>
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="user in users" :key="user.fingerprint">
+                                <tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200">
+                                    <td class="py-3 px-4 font-mono text-xs text-gray-600 break-all max-w-xs" x-text="user.fingerprint"></td>
+                                    <td class="py-3 px-4 text-sm text-gray-600" x-text="user.tokensRemaining"></td>
+                                    <td class="py-3 px-4 text-sm text-gray-600" x-text="user.totalUsed"></td>
+                                    <td class="py-3 px-4 text-sm text-gray-600" x-text="user.lastUsed ? new Date(user.lastUsed).toLocaleDateString() : 'Never'"></td>
+                                    <td class="py-3 px-4 text-sm text-gray-600" x-text="new Date(user.createdAt).toLocaleDateString()"></td>
+                                    <td class="py-3 px-4 text-sm text-gray-600" x-text="user.requestCount"></td>
+                                    <td class="py-3 px-4">
+                                        <button 
+                                            @click="addTokens(user.fingerprint)"
+                                            class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                                        >
+                                            +10 Tokens
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function adminDashboard() {
+            return {
+                activeTab: 'pending',
+                requests: [],
+                approvedRequests: [],
+                rejectedRequests: [],
+                users: [],
+                stats: {
+                    totalUsers: 0,
+                    pendingRequests: 0,
+                    totalTokensUsed: 0
+                },
+
+                async loadData() {
+                    await Promise.all([
+                        this.loadRequests('pending'),
+                        this.loadRequests('approved'),
+                        this.loadRequests('rejected'),
+                        this.loadUsers()
+                    ]);
+                    this.calculateStats();
+                },
+
+                async loadAllRequests() {
+                    await this.loadRequests('pending');
+                    await this.loadRequests('approved');
+                    await this.loadRequests('rejected');
+                },
+
+                async loadRequests(status = 'pending') {
+                    try {
+                        const response = await fetch('/api/admin/requests?status=' + status);
+                        const data = await response.json();
+                        if (data.success) {
+                            if (status === 'pending') {
+                                this.requests = data.requests;
+                            } else if (status === 'approved') {
+                                this.approvedRequests = data.requests;
+                            } else if (status === 'rejected') {
+                                this.rejectedRequests = data.requests;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to load requests:', error);
+                    }
+                },
+
+                async loadUsers() {
+                    try {
+                        const response = await fetch('/api/admin/users');
+                        const data = await response.json();
+                        if (data.success) {
+                            this.users = data.users;
+                        }
+                    } catch (error) {
+                        console.error('Failed to load users:', error);
+                    }
+                },
+
+                async approveRequest(requestId) {
+                    try {
+                        const response = await fetch('/api/admin/requests/' + requestId + '/approve', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ approvedBy: 'admin' })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showNotification('Request approved successfully!', 'success');
+                            await this.loadAllRequests();
+                            await this.loadUsers();
+                            this.calculateStats();
+                            // Auto switch to approved tab
+                            this.activeTab = 'approved';
+                        } else {
+                            this.showNotification('Failed to approve request', 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Error approving request: ' + error.message, 'error');
+                    }
+                },
+
+                async rejectRequest(requestId) {
+                    try {
+                        const response = await fetch('/api/admin/requests/' + requestId + '/reject', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ approvedBy: 'admin' })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showNotification('Request rejected', 'success');
+                            await this.loadAllRequests();
+                            await this.loadUsers();
+                            this.calculateStats();
+                            // Auto switch to rejected tab
+                            this.activeTab = 'rejected';
+                        } else {
+                            this.showNotification('Failed to reject request', 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Error rejecting request: ' + error.message, 'error');
+                    }
+                },
+
+                async addTokens(fingerprint) {
+                    try {
+                        const response = await fetch('/api/admin/update-tokens', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                fingerprint: fingerprint,
+                                tokens: 10
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.showNotification('Added 10 tokens successfully!', 'success');
+                            await this.loadUsers();
+                            this.calculateStats();
+                        } else {
+                            this.showNotification('Failed to add tokens: ' + data.error, 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Error adding tokens: ' + error.message, 'error');
+                    }
+                },
+
+                calculateStats() {
+                    this.stats.totalUsers = this.users.length;
+                    this.stats.pendingRequests = this.requests.length;
+                    this.stats.totalTokensUsed = this.users.reduce((sum, user) => sum + user.totalUsed, 0);
+                },
+
+                showNotification(message, type) {
+                    // Simple notification - in production, use a proper notification library
+                    const notification = document.createElement('div');
+                    notification.className = \`fixed top-4 right-4 p-4 rounded-lg text-white z-50 \${type === 'success' ? 'bg-green-500' : 'bg-red-500'}\`;
+                    notification.textContent = message;
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 3000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+  `);
+});
+
+// Token management APIs
+app.use('/api/token', tokenApi);
+
+// Admin APIs
+app.use('/api', adminApi);
+
+// Crawl API endpoint
+app.post('/api/crawl', async (req, res) => {
+  try {
+    const { url, tone, voice } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
+    console.log('🔍 Crawling website:', url);
+    
+    // Initialize crawler
+    const crawler = new WebCrawler();
+    
+    // Crawl the website
+    const crawlResult = await crawler.crawlWebsite(url);
+    
+    // Close crawler
+    await crawler.close();
+    
+    console.log('✅ Website crawled successfully');
+    
+    // Return the crawl data
+    res.json({
+      success: true,
+      url: url,
+      tone: tone,
+      voice: voice,
+      timestamp: new Date().toISOString(),
+      htmlComponents: crawlResult.htmlComponents,
+      cssAnalysis: crawlResult.cssAnalysis,
+      metaData: crawlResult.metaData
+    });
+    
+  } catch (error) {
+    console.error('❌ Crawl error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to crawl website';
+    if (error.name === 'TimeoutError') {
+      errorMessage = 'Website took too long to load. Please try again or check if the URL is accessible.';
+    } else if (error.message.includes('net::ERR_NAME_NOT_RESOLVED')) {
+      errorMessage = 'Invalid URL or website not found. Please check the URL and try again.';
+    } else if (error.message.includes('net::ERR_CONNECTION_REFUSED')) {
+      errorMessage = 'Website is not accessible. Please check if the URL is correct.';
+    }
+    
+    res.status(500).json({ 
+      error: 'Crawl failed',
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// UX Audit with Gemini - build prompt and analyze
+app.post('/api/ux-audit', async (req, res) => {
+  try {
+    const { url, tone, voice, targetAudience, crawlData } = req.body || {};
+
+    if (!crawlData) {
+      return res.status(400).json({ error: 'crawlData is required' });
+    }
+
+    // Helper: prune large arrays to keep prompt size manageable
+    const pruneArray = (arr, limit = 50) => Array.isArray(arr) ? arr.slice(0, limit) : arr;
+    const pruneSection = (section, limit = 50) => {
+      if (!section) return section;
+      if (Array.isArray(section)) return pruneArray(section, limit);
+      // object with arrays
+      const pruned = {};
+      for (const key of Object.keys(section)) {
+        pruned[key] = Array.isArray(section[key]) ? pruneArray(section[key], limit) : section[key];
+      }
+      return pruned;
+    };
+
+    const prunedHtml = {
+      headings: pruneSection(crawlData.headings, 20),
+      paragraphs: pruneArray(crawlData.paragraphs, 40),
+      navigation: pruneSection(crawlData.navigation, 40),
+      forms: pruneSection(crawlData.forms, 40),
+      media: pruneSection(crawlData.media, 40),
+      layout: pruneSection(crawlData.layout, 40),
+      lists: pruneSection(crawlData.lists, 40),
+      tables: pruneArray(crawlData.tables, 10),
+    };
+
+    const prunedCss = crawlData.cssAnalysis || {};
+
+    const UX_AUDIT_PROMPT = `You are a UX auditor. Analyze the website data and provide a UX audit report.
+
+INPUT DATA:
+- URL: ${url}
+- Tone: ${tone || 'N/A'}
+- Voice: ${voice || 'N/A'}
+- Target Audience: ${targetAudience || 'N/A'}
+
+HTML DATA:
+${JSON.stringify(prunedHtml, null, 2)}
+
+CSS DATA:
+${JSON.stringify(prunedCss, null, 2)}
+
+REQUIRED OUTPUT FORMAT:
+## Overall UX Quality: [Excellent / Good / Average / Poor]
+
+#### 1. HTML Structure Analysis
+[Your analysis here]
+
+#### 2. CSS & Visual Design Analysis
+[Your analysis here]
+
+#### 3. Accessibility & Contrast Analysis
+[Your analysis here]
+
+#### 4. Interaction & Responsiveness Analysis
+[Your analysis here]
+
+#### 5. Visual Consistency Analysis
+[Your analysis here]
+
+#### 6. Performance & Load Analysis
+[Your analysis here]
+
+#### 7. Tone & Voice Analysis
+[Your analysis here]
+
+#### 8. Content Analysis
+[Your analysis here]
+
+#### 9. Final Recommendations
+[Your analysis here]
+
+CRITICAL INSTRUCTIONS:
+- You MUST output exactly 9 sections numbered 1-9
+- Do NOT skip any section
+- Do NOT combine sections
+- Follow the exact format above`;
+
+    if (!genAI) {
+      // Return error if Gemini not configured
+      return res.status(502).json({
+        error: 'Gemini API not configured',
+        details: 'Set GEMINI_API_KEY environment variable to enable AI features'
+      }
+opp
+
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const generationConfig = {
+      temperature: 1.0,
+      topP: 1.0,
+      maxOutputTokens: 8192,
+    };
+
+    // Simple retry (up to 2 attempts)
+    let lastError;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts: [{ text: UX_AUDIT_PROMPT }] }],
+          generationConfig,
+        });
+        const resp = await result.response;
+        return res.json({ analysis: resp.text() });
+      } catch (err) {
+        lastError = err;
+        console.error(`Gemini UX audit attempt ${attempt} failed:`, err?.message || err);
+        await new Promise(r => setTimeout(r, 400 * attempt));
+      }
+    }
+
+    // If all attempts failed, return error without fallback
+    return res.status(502).json({
+      error: 'Model provider unavailable',
+      details: process.env.NODE_ENV === 'development' ? (lastError?.message || 'provider error') : undefined,
+    });
+  } catch (error) {
+    console.error('UX audit endpoint error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Admin API to update user tokens
+app.post('/api/admin/update-tokens', (req, res) => {
+  try {
+    const { fingerprint, tokens } = req.body;
+    
+    if (!fingerprint || typeof tokens !== 'number') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Missing fingerprint or invalid tokens count' 
+      });
+    }
+
+    // Load current users
+    const usersPath = path.join(__dirname, 'data', 'users.json');
+    let users = [];
+    
+    if (fs.existsSync(usersPath)) {
+      const usersData = fs.readFileSync(usersPath, 'utf8');
+      users = JSON.parse(usersData);
+    }
+
+    // Find and update user
+    const userIndex = users.findIndex(user => user.fingerprint === fingerprint);
+    
+    if (userIndex === -1) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'User not found' 
+      });
+    }
+
+    // Update tokens
+    users[userIndex].tokensRemaining = tokens;
+    users[userIndex].lastUpdated = new Date().toISOString();
+
+    // Save back to file
+    fs.writeFileSync(usersPath, JSON.stringify(users, null, 2));
+
+    res.json({ 
+      success: true, 
+      message: `Updated tokens for user ${fingerprint.substring(0, 8)}...`,
+      user: users[userIndex]
+    });
+
+  } catch (error) {
+    console.error('Error updating tokens:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error' 
+    });
+  }
+});
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
@@ -1088,4 +2018,4 @@ app.listen(PORT, () => {
   } else {
     console.log(`🤖 Gemini integration: Disabled (set GEMINI_API_KEY to enable)`);
   }
-}); 
+});

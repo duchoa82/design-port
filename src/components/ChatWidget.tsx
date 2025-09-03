@@ -45,6 +45,8 @@ export default function ChatWidget() {
     }
   }, [isOpen, isWelcome]);
 
+
+
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const handleSendMessage = async (text: string) => {
@@ -193,16 +195,17 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
       {/* Chat Widget */}
       {isOpen && (
         <div
-          className="fixed z-50 w-96 h-[500px] rounded-2xl flex flex-col overflow-hidden"
+          className="fixed z-50 w-[calc(100vw-2rem)] max-w-sm h-[500px] rounded-2xl flex flex-col overflow-hidden"
           style={{
             bottom: '104px', // 56px (bubble) + 24px gap
-            right: '24px',
+            left: '50%',
+            transform: 'translateX(-50%)',
             background: 'rgba(255, 255, 255, 0.39)',
             borderRadius: '16px',
             boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
             backdropFilter: 'blur(8.7px)',
             WebkitBackdropFilter: 'blur(8.7px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
+            border: '2px solid rgba(0, 0, 0, 0.2)'
           }}
         >
           {/* Header */}
@@ -340,7 +343,7 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                         }
                       }}
                       placeholder="Ask me anything..."
-                      className="flex-1 transition-all duration-200 border border-border outline-none focus:outline-none focus:border-none focus:ring-0 focus:shadow-none active:border-none active:ring-0 caret-blue-500 caret-2"
+                      className="flex-1 transition-all duration-200 border border-border outline-none focus:outline-none focus:border-none focus:ring-0 focus:shadow-none active:border-none active:ring-0 caret-blue-500 caret-2 text-black placeholder:text-black"
                       disabled={isLoading}
                     />
                     <Button

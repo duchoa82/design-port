@@ -1,0 +1,72 @@
+{
+  "37bb626a-eac9-4aba-a43d-2859d5e64371": {
+    "id": "37bb626a-eac9-4aba-a43d-2859d5e64371",
+    "fingerprint": "9b99aa4df4dcfd5a1347bf47769d3f9a563857a746df807eaaac37731574b310",
+    "email": "test@persistence.com",
+    "reason": "Testing file persistence",
+    "status": "approved",
+    "createdAt": "2025-08-31T08:25:07.965Z",
+    "approvedAt": "2025-08-31T09:09:39.362Z",
+    "approvedBy": "admin"
+  },
+  "541a68a4-d285-49cd-bf41-cae573b7d9e9": {
+    "id": "541a68a4-d285-49cd-bf41-cae573b7d9e9",
+    "fingerprint": "9b99aa4df4dcfd5a1347bf47769d3f9a563857a746df807eaaac37731574b310",
+    "email": "duchoa201093@gmail.com",
+    "reason": "Testing token request system",
+    "status": "approved",
+    "createdAt": "2025-09-01T04:40:41.865Z",
+    "approvedAt": "2025-09-01T04:42:01.874Z",
+    "approvedBy": "admin"
+  },
+  "4eb7cf7e-4a52-464f-8102-b286a38f4b98": {
+    "id": "4eb7cf7e-4a52-464f-8102-b286a38f4b98",
+    "fingerprint": "cc7198cb17a553387e545ada79d65ea438ebcb9aad9bedd71799ea27d71d327a",
+    "email": "duchoa201093@gmail.com",
+    "reason": "testing",
+    "status": "approved",
+    "createdAt": "2025-09-01T11:24:09.241Z",
+    "approvedAt": "2025-09-02T15:00:42.404Z",
+    "approvedBy": "admin"
+  },
+  "301a3a72-dac5-4f70-a4cf-9f585000dd72": {
+    "id": "301a3a72-dac5-4f70-a4cf-9f585000dd72",
+    "fingerprint": "40215478cef7794502f35af86231cf474b24b23a07b65de35ff22a0521faac6d",
+    "email": "duchoa201093@gmail.com",
+    "reason": "test",
+    "status": "approved",
+    "createdAt": "2025-09-02T14:14:27.748Z",
+    "approvedAt": "2025-09-02T14:16:59.467Z",
+    "approvedBy": "admin"
+  },
+  "1583acf7-f4b9-4c57-8f75-0e63dff27f90": {
+    "id": "1583acf7-f4b9-4c57-8f75-0e63dff27f90",
+    "fingerprint": "40215478cef7794502f35af86231cf474b24b23a07b65de35ff22a0521faac6d",
+    "email": "duchoa201093@gmail.com",
+    "reason": "test",
+    "status": "approved",
+    "createdAt": "2025-09-02T15:00:30.877Z",
+    "approvedAt": "2025-09-02T15:00:46.692Z",
+    "approvedBy": "admin"
+  },
+  "bfe20e06-c27a-447a-baba-3ebf98f19088": {
+    "id": "bfe20e06-c27a-447a-baba-3ebf98f19088",
+    "fingerprint": "4563d0e894c7745d6cd456838a0f2c19b6126ea4c7746e943f79e2fc7281c0fe",
+    "email": "duchoa201093@gmail.com",
+    "reason": "tết",
+    "status": "approved",
+    "createdAt": "2025-09-03T06:42:41.106Z",
+    "approvedAt": "2025-09-03T06:42:51.264Z",
+    "approvedBy": "admin"
+  },
+  "deac817a-c07e-4a0f-9e7d-27ee4b87cc80": {
+    "id": "deac817a-c07e-4a0f-9e7d-27ee4b87cc80",
+    "fingerprint": "4563d0e894c7745d6cd456838a0f2c19b6126ea4c7746e943f79e2fc7281c0fe",
+    "email": "duchoa201093@gmail.com",
+    "reason": "testing nè, đc k\n?",
+    "status": "approved",
+    "createdAt": "2025-09-03T07:50:19.939Z",
+    "approvedAt": "2025-09-03T07:50:41.906Z",
+    "approvedBy": "admin"
+  }
+}

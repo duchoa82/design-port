@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import ProjectTemplate from "./pages/ProjectTemplate";
 import Profile from "./pages/Profile";
 import ProcessCardDemo from "./pages/PinnedNoteDemo";
+import WebAnalyzerPage from "./pages/WebAnalyzer";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/project/:id" element={<ProjectTemplate />} />
           <Route path="/process-card-demo" element={<ProcessCardDemo />} />
+          <Route path="/web-analyzer" element={<WebAnalyzerPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

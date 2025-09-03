@@ -27,6 +27,34 @@
   animation: pop 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
+@keyframes bling {
+  0%, 100% { 
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.4);
+  }
+}
+
+@keyframes bling-overlay {
+  0%, 100% { 
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  50% { 
+    opacity: 1;
+    transform: translateX(100%);
+  }
+}
+
+.animate-bling {
+  animation: bling 30s ease-in-out infinite;
+}
+
+.animate-bling-overlay {
+  animation: bling-overlay 30s ease-in-out infinite;
+}
+
 .custom-gradient-shadow {
   position: relative;
   z-index: 0;
@@ -189,4 +217,4 @@ All colors MUST be HSL.
 .prose table td *,
 .prose table th * {
   text-align: left !important;
-}
+}select { background-image: none !important; }

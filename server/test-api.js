@@ -1,65 +1,68 @@
-// Simple test script for the chat API
-const API_BASE = 'http://localhost:3001/api';
-
 async function testAPI() {
-  console.log('🧪 Testing Portfolio Chat API...\n');
+  const testData = {
+    url: 'https://www.karocrafts.com/',
+    tone: 'professional',
+    voice: 'helpful',
+    targetAudience: 'Art enthusiasts and collectors'
+  };
 
+  console.log('🧪 Testing /api/crawl endpoint...');
+  
   try {
-    // Test health endpoint
-    console.log('1. Testing health endpoint...');
-    const healthResponse = await fetch(`${API_BASE}/health`);
-    const healthData = await healthResponse.json();
-    console.log('✅ Health check:', healthData.status);
-    console.log('   Timestamp:', healthData.timestamp);
-    console.log('');
-
-    // Test chat endpoint
-    console.log('2. Testing chat endpoint...');
-    const chatResponse = await fetch(`${API_BASE}/chat`, {
+    const crawlResponse = await fetch('http://localhost:3001/api/crawl', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: 'What are your skills?'
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testData)
     });
 
-    if (!chatResponse.ok) {
-      throw new Error(`Chat API failed: ${chatResponse.status}`);
+    if (crawlResponse.ok) {
+      const crawlData = await crawlResponse.json();
+      console.log('✅ Crawl API successful');
+      console.log('📊 Data summary:', {
+        headings: crawlData.htmlComponents?.headings?.length || 0,
+        paragraphs: crawlData.htmlComponents?.paragraphs?.length || 0,
+        cssAnalysis: !!crawlData.cssAnalysis,
+        metaData: !!crawlData.metaData
+      });
+
+      // Test UX Audit API
+      console.log('\n🧪 Testing /api/ux-audit endpoint...');
+      
+      const packagedData = {
+        headings: crawlData.htmlComponents?.headings || [],
+        paragraphs: crawlData.htmlComponents?.paragraphs || [],
+        navigation: crawlData.htmlComponents?.navigation || [],
+        forms: crawlData.htmlComponents?.forms || [],
+        media: crawlData.htmlComponents?.media || [],
+        layout: crawlData.htmlComponents?.layout || [],
+        cssAnalysis: crawlData.cssAnalysis || {},
+        metaData: crawlData.metaData || {}
+      };
+
+      const auditResponse = await fetch('http://localhost:3001/api/ux-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...testData,
+          crawlData: packagedData
+        })
+      });
+
+      if (auditResponse.ok) {
+        const auditResult = await auditResponse.json();
+        console.log('✅ UX Audit API successful');
+        console.log('📝 Analysis preview:', auditResult.analysis?.substring(0, 200) + '...');
+      } else {
+        console.log('❌ UX Audit API failed:', auditResponse.status);
+      }
+
+    } else {
+      console.log('❌ Crawl API failed:', crawlResponse.status);
     }
-
-    const chatData = await chatResponse.json();
-    console.log('✅ Chat response received');
-    console.log('   Conversation ID:', chatData.conversationId);
-    console.log('   Messages count:', chatData.messages.length);
-    console.log('   Last message:', chatData.lastMessage.text.substring(0, 100) + '...');
-    console.log('');
-
-    // Test conversation history
-    console.log('3. Testing conversation history...');
-    const historyResponse = await fetch(`${API_BASE}/chat/${chatData.conversationId}`);
-    const historyData = await historyResponse.json();
-    console.log('✅ Conversation history retrieved');
-    console.log('   Messages in history:', historyData.messages.length);
-    console.log('');
-
-    console.log('🎉 All tests passed! The API is working correctly.');
-    console.log('');
-    console.log('📝 You can now:');
-    console.log('   - Start your frontend development server');
-    console.log('   - Test the chat widget in your browser');
-    console.log('   - The chat will now use the real backend API');
 
   } catch (error) {
     console.error('❌ Test failed:', error.message);
-    console.log('');
-    console.log('🔧 Troubleshooting:');
-    console.log('   1. Make sure the server is running: npm run dev');
-    console.log('   2. Check if port 3001 is available');
-    console.log('   3. Verify your .env configuration');
   }
 }
 
-// Run the test
-testAPI(); 
+testAPI();

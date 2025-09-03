@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { Sparkles } from "lucide-react";
+import { AIBrainButton } from "@/components/ui/AIBrainButton";
 
 const projects = [
   {
@@ -95,13 +95,14 @@ const Header = () => {
               alt="Portfolio Logo" 
               className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
             />
-            <span className="text-lg sm:text-xl font-semibold text-foreground">
+            <span className="hidden sm:block text-lg sm:text-xl font-semibold text-foreground">
               Portfolio
             </span>
           </Link>
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6 lg:space-x-8 relative" style={{ zIndex: 99999999 }}>
+            {/* Projects */}
             <div className="relative" ref={menuRef} style={{ zIndex: 99999999 }}>
               <button
                 className={`relative transition-colors cursor-pointer select-none px-2 py-1 rounded-md focus:outline-none ${
@@ -164,6 +165,9 @@ const Header = () => {
                 </div>
               )}
             </div>
+            
+
+            {/* Download CV */}
             <button 
               className={`relative transition-colors ${
                 activeSection === "profile" 
@@ -185,15 +189,66 @@ const Header = () => {
               )}
             </button>
           </div>
+          
+          {/* AI Brain Button - Right side */}
+          <div className="hidden md:block">
+            <AIBrainButton
+              onClick={() => {
+                // Scroll to RecruiterPlayground section
+                const recruiterSection = document.querySelector('[data-section="recruiter-playground"]');
+                if (recruiterSection) {
+                  recruiterSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
+              Play with My AI Brain
+            </AIBrainButton>
+          </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
-            <button
-              className="p-2 text-foreground hover:bg-muted rounded-md transition-colors"
-              onClick={() => setOpen(!open)}
+          <div className="md:hidden flex items-center gap-2">
+            {/* AI Brain Button */}
+            <AIBrainButton
+              onClick={() => {
+                // Scroll to RecruiterPlayground section
+                const recruiterSection = document.querySelector('[data-section="recruiter-playground"]');
+                if (recruiterSection) {
+                  recruiterSection.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              Play with My AI Brain
+            </AIBrainButton>
+            
+            {/* Hamburger Button - Show when menu is closed */}
+            <button
+              className={`p-2 text-foreground hover:bg-muted rounded-md transition-all duration-200 ${open ? 'hidden' : 'block'}`}
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+            >
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+            
+            {/* X Button - Show when menu is open */}
+            <button
+              className={`p-2 text-foreground hover:bg-muted rounded-md transition-all duration-200 ${open ? 'block' : 'hidden'}`}
+              onClick={() => setOpen(false)}
+              aria-label="Close menu"
+            >
+              <svg 
+                className="w-6 h-6" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>

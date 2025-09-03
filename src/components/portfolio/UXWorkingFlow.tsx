@@ -14,39 +14,49 @@ const UXWorkingFlow = () => {
           </p>
         </div>
 
-        {/* Process Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl mx-auto mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <ProcessCard
-            number="01"
-            title="Requirement Collection"
-            description="Gather inputs from multiple sources, from **chats**, **direct discussions**, **Figma feedback**, and written feedback. Focus on identifying core needs and clarifying business goals."
-            variant="info"
-            rotation={-3}
-          />
-          
-          <ProcessCard
-            number="02"
-            title="Market & User Research"
-            description="**Market Research**<br>In-depth **competitor analysis** & benchmarking to map industry standards, trends, and detect market gaps.<br><br>**User Research**<br>**understand users' needs** & **behaviors** helps uncover their motivations, expectations, & pain points."
-            variant="warning"
-            rotation={1}
-          />
-          
-          <ProcessCard
-            number="03"
-            title="Userflow, Journey, Wireframe & Codevibes"
-            description="Spotting potential **friction points** and **hidden cases** early through **User Flows, Journeys, and Wireframes** helps align the team on structure and interactions from the very beginning.<br><br>**Codevibes** — an evolved form of wireframing — enabling the team to **see, click, & feel** the concept in action."
-            variant="default"
-            rotation={-1}
-          />
-          
-          <ProcessCard
-            number="04"
-            title="Data Benchmark & Testing"
-            description="Define a **Data Benchmarking** that aligns with both business goals and product goals before release.<br><br>• **Internal testing**: gather feedback from team<br>• **Stakeholder demo**: validate alignment with business<br>• **End-user observation**: getting user data for next version."
-            variant="success"
-            rotation={2}
-          />
+        {/* Process Cards Grid - Fixed alignment */}
+        <div className="flex justify-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 max-w-6xl w-full">
+            <div className="flex justify-center lg:justify-start">
+              <ProcessCard
+                number="01"
+                title="Requirement Collection"
+                description="Gather inputs from multiple sources, from **chats**, **direct discussions**, **Figma feedback**, and written feedback. Focus on identifying core needs and clarifying business goals."
+                variant="info"
+                rotation={-3}
+              />
+            </div>
+            
+            <div className="flex justify-center lg:justify-end">
+              <ProcessCard
+                number="02"
+                title="Market & User Research"
+                description="**Market Research**<br>In-depth **competitor analysis** & benchmarking to map industry standards, trends, and detect market gaps.<br><br>**User Research**<br>**understand users' needs** & **behaviors** helps uncover their motivations, expectations, & pain points."
+                variant="warning"
+                rotation={1}
+              />
+            </div>
+            
+            <div className="flex justify-center lg:justify-start">
+              <ProcessCard
+                number="03"
+                title="Userflow & Wireframing"
+                description="Spotting potential **friction points** and **hidden cases** early through **User Flows, Journeys, and Wireframes** helps align the team on structure and interactions from the very beginning.<br><br>**Codevibes** — an evolved form of wireframing — enabling the team to **see, click, & feel** the concept in action."
+                variant="default"
+                rotation={-1}
+              />
+            </div>
+            
+            <div className="flex justify-center lg:justify-end">
+              <ProcessCard
+                number="04"
+                title="Data Benchmark & Testing"
+                description="Define a **Data Benchmarking** that aligns with both business goals and product goals before release.<br><br>• **Internal testing**: gather feedback from team<br>• **Stakeholder demo**: validate alignment with business<br>• **End-user observation**: getting user data for next version."
+                variant="success"
+                rotation={2}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

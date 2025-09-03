@@ -53,43 +53,6 @@ export default function RecruiterPlayground() {
   const [generatedUserStories, setGeneratedUserStories] = useState<string>("");
   const [showActionButtons, setShowActionButtons] = useState(false);
   const [sprintCompleted, setSprintCompleted] = useState(false);
-  
-  // Card selection states
-  const [showCardSelection, setShowCardSelection] = useState(true);
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
-  
-  // UX Audit states
-  const [url, setUrl] = useState("");
-  const [selectedTone, setSelectedTone] = useState("professional");
-  const [selectedVoice, setSelectedVoice] = useState("analytical");
-  const [targetAudience, setTargetAudience] = useState("");
-
-  // UX Audit options
-  const toneOptions = [
-    { value: "friendly", label: "Friendly" },
-    { value: "professional", label: "Professional" },
-    { value: "playful", label: "Playful" },
-    { value: "serious", label: "Serious" },
-    { value: "inspiring", label: "Inspiring" },
-    { value: "empathetic", label: "Empathetic" },
-    { value: "confident", label: "Confident" },
-    { value: "authoritative", label: "Authoritative" },
-    { value: "optimistic", label: "Optimistic" },
-    { value: "neutral", label: "Neutral" }
-  ];
-
-  const voiceOptions = [
-    { value: "simple", label: "Simple" },
-    { value: "formal", label: "Formal" },
-    { value: "technical", label: "Technical" },
-    { value: "creative", label: "Creative" },
-    { value: "conversational", label: "Conversational" },
-    { value: "story-driven", label: "Story-driven" },
-    { value: "analytical", label: "Analytical" },
-    { value: "persuasive", label: "Persuasive" },
-    { value: "poetic", label: "Poetic" },
-    { value: "direct", label: "Direct" }
-  ];
 
   const userStoryKeywords = [
     'flow', 'feature', 'function', 'screen', 'module', 'checkout', 'login', 'dashboard', 'onboarding',
@@ -106,87 +69,6 @@ export default function RecruiterPlayground() {
     userStoryKeywords.some(word => text.toLowerCase().includes(word));
 
   const [pendingUserStoryFeature, setPendingUserStoryFeature] = useState<string | null>(null);
-
-  // Card selection handler
-  const handleCardSelection = (mode: string) => {
-    setSelectedMode(mode);
-    setShowCardSelection(false);
-    setShowMainForm(false);
-  };
-
-  // UX Audit submit handler
-  const handleAuditUXSubmit = async () => {
-    if (!url.trim()) {
-      return;
-    }
-
-    setIsLoading(true);
-    setStreamingText(null);
-    setStreamingIndex(0);
-
-    try {
-      // Step 1: Crawl the website
-      setStreamingText("🔍 Scanning your website components...");
-      setStreamingIndex(0);
-
-      const crawlResponse = await fetch('/api/crawl', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url }),
-      });
-
-      if (!crawlResponse.ok) {
-        throw new Error('Crawl failed');
-      }
-
-      const crawlData = await crawlResponse.json();
-
-      // Step 2: Send to UX Audit API
-      setStreamingText("🤖 Generating UX analysis...");
-      setStreamingIndex(0);
-
-      const uxAuditResponse = await fetch('/api/ux-audit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url,
-          tone: selectedTone,
-          voice: selectedVoice,
-          targetAudience,
-          crawlData
-        }),
-      });
-
-      if (!uxAuditResponse.ok) {
-        throw new Error('UX Audit failed');
-      }
-
-      const aiResult = await uxAuditResponse.json();
-
-      // Start streaming the result
-      setStreamingText(aiResult.analysis);
-      setStreamingIndex(0);
-      setIsLoading(false);
-
-      // Stream text character by character
-      const streamText = (text: string, index: number) => {
-        if (index < text.length) {
-          setStreamingIndex(index + 1);
-          setTimeout(() => streamText(text, index + 1), 20);
-        }
-      };
-      streamText(aiResult.analysis, 0);
-
-    } catch (error) {
-      console.error('Error:', error);
-      setStreamingText("Sorry, I couldn't analyze the website. Please try again.");
-      setIsLoading(false);
-    }
-  };
 
   const strengthsMarkdown = `### **Strengths**\n\n-   **Quick learner, hands-on mindset**: Taught myself and built 4 Web3 products in 6 months, then developed 8 AI agents in just 3 months – all starting from zero.\n-   **Systematic thinker**: Able to break down vague ideas into clear, structured workflows. Good at bridging technical and non-technical teams.\n-   **Self-aware & persistent**: I know my strengths and weaknesses, and I’m willing to adapt and grow rather than just follow trends or short-term hype.`;
 
@@ -670,7 +552,6 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
       return;
     }
 
-    setShowMainForm(false);
     setIsLoading(true);
     setStreamingText(null);
     setStreamingIndex(0);
@@ -793,7 +674,6 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
 
   const handleNewUserStory = () => {
     setShowActionButtons(false);
-    setShowMainForm(true);
     setShowSprintForm(false);
     setSprintCompleted(false);
     setTargetUser("");
@@ -831,7 +711,6 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                 type="button"
                 onClick={() => {
                   // Reset all state to initial values
-                  setShowMainForm(true);
                   setShowSprintForm(false);
                   setShowActionButtons(false);
                   setSprintCompleted(false);
@@ -846,12 +725,6 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                   setConversationId(null);
                   setIsLoading(false);
                   setMessages([]);
-                  setShowCardSelection(true);
-                  setSelectedMode(null);
-                  setUrl("");
-                  setSelectedTone("professional");
-                  setSelectedVoice("analytical");
-                  setTargetAudience("");
                 }}
                 className="p-2 rounded hover:bg-muted transition-colors"
                 aria-label="Refresh chat"
@@ -861,45 +734,7 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
             </div>
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              {showCardSelection ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl">
-                    <div
-                      onClick={() => handleCardSelection("user-story")}
-                      className="relative group cursor-pointer bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-2xl border border-blue-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-800">Write User Stories</h3>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        Create detailed user stories and acceptance criteria for your features with AI assistance
-                      </p>
-                    </div>
-
-                    <div
-                      onClick={() => handleCardSelection("audit-ux")}
-                      className="relative group cursor-pointer bg-gradient-to-br from-purple-50 to-violet-100 p-6 rounded-2xl border border-purple-200 hover:border-purple-300 transition-all duration-300 hover:shadow-lg hover:scale-[1.02]"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                            <Brain className="w-5 h-5 text-white" />
-                          </div>
-                          <h3 className="text-lg font-semibold text-gray-800">UX Audit</h3>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        Analyze website UX with AI-powered insights and recommendations
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : selectedMode === "user-story" && !showMainForm && !streamingText ? (
+              {selectedMode === "user-story" && !showMainForm && !streamingText) ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
                   <h3 className="text-lg font-semibold mb-2 text-foreground">
                     Generate User Stories with AI
@@ -935,143 +770,22 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                     <button
                       onClick={handleUserStoryFormSubmit}
                       disabled={!targetUser.trim() || !taskDescription.trim() || isLoading}
-                      className="relative w-full px-6 py-3 text-white rounded-lg font-bold transition-all duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                      className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
                     >
-                      {/* Layer dưới: fill đen */}
-                      <div className="absolute inset-0 bg-black rounded-lg"></div>
-                      
-                      {/* Layer trên cùng: gradient BG + stroke */}
-                      <div 
-                        className="absolute inset-0 rounded-lg"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(111, 111, 111, 0) 100%)',
-                          border: '1px solid rgba(0, 0, 0, 0.8)',
-                          borderRadius: '8px'
-                        }}
-                      ></div>
-                      
-                                            {/* Content */}
-                      <span className="relative z-10 text-white font-bold flex items-center justify-center w-full">
-                        {isLoading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            <span>THINKING</span>
-                          </>
-                        ) : (
-                          "Write Me The User Stories"
-                        )}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ) : selectedMode === "audit-ux" && !streamingText ? (
-                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                  <h3 className="text-lg font-semibold mb-2 text-foreground">
-                    UX Audit Analysis
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Analyze website UX with AI-powered insights
-                  </p>
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          <span className="bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-pulse font-bold">
+                            GENERATING
+                          </span>
 
-                  {/* UX Audit Form */}
-                  <div className="w-full max-w-md mx-auto space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-left">Website URL:</label>
-                      <input
-                        type="url"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        placeholder="https://example.com"
-                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-left">Tone:</label>
-                        <div className="relative">
-                          <select
-                            value={selectedTone}
-                            onChange={(e) => setSelectedTone(e.target.value)}
-                            className="w-full px-4 py-3 pr-10 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
-                          >
-                            {toneOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m6 9 6 6 6-6" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-left">Voice:</label>
-                        <div className="relative">
-                          <select
-                            value={selectedVoice}
-                            onChange={(e) => setSelectedVoice(e.target.value)}
-                            className="w-full px-4 py-3 pr-10 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent appearance-none"
-                          >
-                            {voiceOptions.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m6 9 6 6 6-6" />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-left">Target Audience (Optional):</label>
-                      <textarea
-                        value={targetAudience}
-                        onChange={(e) => setTargetAudience(e.target.value)}
-                        placeholder="Describe your target audience..."
-                        rows={3}
-                        className="w-full px-4 py-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                      />
-                    </div>
-
-                    <button
-                      onClick={handleAuditUXSubmit}
-                      disabled={isLoading || !url.trim()}
-                      className="relative w-full px-6 py-3 text-white rounded-lg font-bold transition-all duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-                    >
-                      {/* Layer dưới: fill đen */}
-                      <div className="absolute inset-0 bg-black rounded-lg"></div>
-                      
-                      {/* Layer trên cùng: gradient BG + stroke */}
-                      <div 
-                        className="absolute inset-0 rounded-lg"
-                        style={{
-                          background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(111, 111, 111, 0) 100%)',
-                          border: '1px solid rgba(0, 0, 0, 0.8)',
-                          borderRadius: '8px'
-                        }}
-                      ></div>
-                      
-                      {/* Content */}
-                      <span className="relative z-10 text-white font-bold flex items-center justify-center w-full">
-                        {isLoading ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            <span>Analyzing...</span>
-                          </div>
-                        ) : (
-                          "Analyze UX"
-                        )}
-                      </span>
+                        </>
+                      ) : (
+                        <>
+                          Write Me The User Stories
+                          <span className="text-xs bg-white/20 px-2 py-1 rounded-full">AI Powered</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1161,7 +875,7 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                         <div className="flex items-center gap-3">
                           <Sparkles className="w-6 h-6 text-purple-400 fill-current animate-pulse" />
                           <span className="text-lg bg-gradient-to-r from-purple-400 via-blue-500 to-purple-600 bg-clip-text text-transparent animate-pulse font-bold">
-                            THINKING
+                            GENERATING
                           </span>
 
                         </div>
@@ -1225,25 +939,9 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                             <button
                               onClick={handleSprintFormSubmit}
                               disabled={!teamMember.trim() || !projectTimeline || isLoading}
-                              className="relative w-full px-6 py-3 text-white rounded-lg font-bold transition-all duration-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+                              className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                             >
-                              {/* Layer dưới: fill đen */}
-                              <div className="absolute inset-0 bg-black rounded-lg"></div>
-                              
-                              {/* Layer trên cùng: gradient BG + stroke */}
-                              <div 
-                                className="absolute inset-0 rounded-lg"
-                                style={{
-                                  background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(111, 111, 111, 0) 100%)',
-                                  border: '1px solid rgba(0, 0, 0, 0.8)',
-                                  borderRadius: '8px'
-                                }}
-                              ></div>
-                              
-                              {/* Content */}
-                              <span className="relative z-10 text-white font-bold flex items-center justify-center w-full">
-                                {isLoading ? "Generating..." : "Create Sprint Plan"}
-                              </span>
+                              {isLoading ? "Generating..." : "Create Sprint Plan"}
                             </button>
                           </div>
                         </div>
@@ -1260,25 +958,18 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
                             onClick={() => {
                               setShowSprintForm(true);
                             }}
-                            className="relative px-4 py-2 text-white rounded-lg font-bold transition-all duration-300 flex items-center justify-center overflow-hidden"
+                            className="relative bg-white/10 backdrop-blur-md text-black font-medium px-4 py-2 rounded-xl hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-xl border border-white/20 group overflow-hidden"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+                              boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            }}
                           >
-                            {/* Layer dưới: fill đen */}
-                            <div className="absolute inset-0 bg-black rounded-lg"></div>
-                            
-                            {/* Layer trên cùng: gradient BG + stroke */}
-                            <div 
-                              className="absolute inset-0 rounded-lg"
-                              style={{
-                                background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(111, 111, 111, 0) 100%)',
-                                border: '1px solid rgba(0, 0, 0, 0.8)',
-                                borderRadius: '8px'
-                              }}
-                            ></div>
-                            
-                            {/* Content */}
-                            <span className="relative z-10 text-white font-bold flex items-center justify-center text-sm">
+                            <div className="absolute inset-0 bg-gradient-to-br from-pink-300/40 via-purple-300/40 to-blue-300/40 rounded-xl"></div>
+                            <span className="relative z-10 flex items-center gap-2 text-sm">
+                              <Sparkles className="w-3 h-3 text-purple-400 fill-current" style={{ animation: 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} />
                               Generate Sprint Planning
                             </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 rounded-xl"></div>
                           </button>
                         )}
                         <button
@@ -1297,4 +988,4 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
       </div>
     </section>
   );
-} 
+}
