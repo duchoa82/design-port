@@ -15,7 +15,7 @@ const Portfolio = () => {
       <Header />
       <HeroSection />
       <StatsSection />
-      <UXWorkingFlow />
+      {/* <UXWorkingFlow /> */}
       <ProjectsSection />
       {/* <TopicsSection /> */}
       <RecruiterPlayground />

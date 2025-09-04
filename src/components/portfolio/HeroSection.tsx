@@ -13,7 +13,7 @@ const HeroSection = () => {
             Hello! I'm Hoà Trương
           </h1>
           <div className="text-lg sm:text-xl md:text-3xl lg:text-4xl font-light text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            <p className="mb-2 sm:mb-3">UX/Product designer - driving impact on</p>
+            <p className="mb-2 sm:mb-3">UX/Product Owner - driving impact on</p>
             <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mt-3 sm:mt-4">
               <div 
                 className="px-3 sm:px-4 md:px-6 py-2 sm:py-3 text-lg sm:text-xl md:text-2xl font-medium relative overflow-hidden"

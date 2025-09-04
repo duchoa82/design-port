@@ -19,31 +19,31 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
   variant = 'default',
   rotation = -2
 }) => {
-  // Color variants
+  // Mirror effect gray color variants
   const variantColors = {
     default: {
-      card: 'linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)',
-      inner: 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)',
-      number: 'text-orange-600',
-      pushpin: 'bg-orange-400'
+      card: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      inner: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+      number: 'text-gray-700',
+      pushpin: 'bg-gray-500'
     },
     success: {
-      card: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-      inner: 'linear-gradient(135deg, #bbf7d0 0%, #86efac 100%)',
-      number: 'text-green-600',
-      pushpin: 'bg-green-400'
+      card: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      inner: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+      number: 'text-gray-700',
+      pushpin: 'bg-gray-500'
     },
     warning: {
-      card: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-      inner: 'linear-gradient(135deg, #fde68a 0%, #fcd34d 100%)',
-      number: 'text-yellow-600',
-      pushpin: 'bg-yellow-400'
+      card: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      inner: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+      number: 'text-gray-700',
+      pushpin: 'bg-gray-500'
     },
     info: {
-      card: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-      inner: 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)',
-      number: 'text-blue-600',
-      pushpin: 'bg-blue-400'
+      card: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+      inner: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+      number: 'text-gray-700',
+      pushpin: 'bg-gray-500'
     }
   };
 
@@ -55,12 +55,14 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
       <div 
         className="relative w-80 sm:w-96 h-80 sm:h-96 rounded-xl shadow-lg backdrop-blur-md"
         style={{
-          background: 'rgba(255, 255, 255, 0.9)',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1), 0 4px 10px rgba(0, 0, 0, 0.05)',
+          background: 'rgba(255, 255, 255, 0.95)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15), 0 8px 16px rgba(0, 0, 0, 0.1)',
           transform: `rotate(${rotation}deg)`,
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
         {/* Pushpin */}
@@ -77,11 +79,7 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
         <div 
           className="absolute top-6 sm:top-8 left-3 sm:left-4 right-3 sm:right-4 bottom-4 sm:bottom-6 rounded-lg p-3 sm:p-4 backdrop-blur-sm"
           style={{
-            background: variant === 'default' ? 'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)' :
-                       variant === 'success' ? 'linear-gradient(135deg, #bbf7d0 0%, #86efac 100%)' :
-                       variant === 'warning' ? 'linear-gradient(135deg, #fde68a 0%, #fcd34d 100%)' :
-                       variant === 'info' ? 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)' :
-                       'linear-gradient(135deg, #fed7aa 0%, #fdba74 100%)',
+            background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
             border: '1px solid rgba(255, 255, 255, 0.15)'
@@ -93,16 +91,16 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
           </div>
           
           {/* Title */}
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 sm:mb-3">
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
             {title}
           </h3>
           
           {/* Description */}
-          <div className="text-xs sm:text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none">
+          <div className="text-xs sm:text-sm text-gray-200 leading-relaxed prose prose-sm max-w-none">
             <ReactMarkdown
               rehypePlugins={[rehypeRaw]}
               components={{
-                strong: ({node, ...props}) => <strong className="font-semibold text-gray-800" {...props} />,
+                strong: ({node, ...props}) => <strong className="font-semibold text-white" {...props} />,
                 p: ({node, ...props}) => <p className="mb-1 sm:mb-2 last:mb-0" {...props} />
               }}
             >
@@ -120,11 +118,20 @@ const ProcessCard: React.FC<ProcessCardProps> = ({
           }}
         />
 
-        {/* Glass highlight effect */}
+        {/* Mirror effect highlight */}
         <div 
-          className="absolute inset-0 rounded-xl opacity-30"
+          className="absolute inset-0 rounded-xl opacity-60"
           style={{
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%)',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 30%, transparent 60%)',
+            pointerEvents: 'none'
+          }}
+        />
+        
+        {/* Additional mirror reflection */}
+        <div 
+          className="absolute inset-0 rounded-xl opacity-40"
+          style={{
+            background: 'linear-gradient(45deg, transparent 0%, rgba(255,255,255,0.6) 20%, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.6) 60%, transparent 80%)',
             pointerEvents: 'none'
           }}
         />

@@ -198,8 +198,7 @@ Conduct a staging demo when the system is stable and bug-free. Final fixes and p
           className="fixed z-50 w-[calc(100vw-2rem)] max-w-sm h-[500px] rounded-2xl flex flex-col overflow-hidden"
           style={{
             bottom: '104px', // 56px (bubble) + 24px gap
-            left: '50%',
-            transform: 'translateX(-50%)',
+            right: '24px',
             background: 'rgba(255, 255, 255, 0.39)',
             borderRadius: '16px',
             boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',

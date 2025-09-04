@@ -95,8 +95,8 @@ const Header = () => {
               alt="Portfolio Logo" 
               className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
             />
-            <span className="hidden sm:block text-lg sm:text-xl font-semibold text-foreground">
-              Portfolio
+            <span className="hidden sm:block font-semibold text-foreground" style={{ fontSize: '14px' }}>
+              AI-Powered Portfolio
             </span>
           </Link>
           
